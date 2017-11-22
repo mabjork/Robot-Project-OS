@@ -50,7 +50,6 @@ enum {
 
 
 
-
 int * discoverEngines(){
 
 }
@@ -162,3 +161,192 @@ void runTimed( int l_speed, int r_speed, int ms )
     multi_set_tacho_time_sp( motor, ms );
     multi_set_tacho_command_inx( motor, TACHO_RUN_TIMED );
 }
+
+CORO_CONTEXT( handle_touch );
+CORO_CONTEXT( handle_brick_control );
+CORO_CONTEXT( handle_ir_control );
+CORO_CONTEXT( handle_ir_proximity );
+CORO_CONTEXT( drive );
+
+
+/* Coroutine of the TOUCH sensor handling */
+CORO_DEFINE( handle_touch ){
+        CORO_LOCAL int val;
+        CORO_BEGIN();
+        if ( touch == DESC_LIMIT ) CORO_QUIT();
+        for ( ; ; ){
+            /* Waiting the button is pressed */
+            CORO_WAIT(get_sensor_value(0, touch, &val) && (val));
+            /* Stop the vehicle */
+            command = MOVE_NONE;
+            /* Switch mode */
+            _set_mode((mode == MODE_REMOTE) ? MODE_AUTO : MODE_REMOTE);
+            /* Waiting the button is released */
+            CORO_WAIT(get_sensor_value(0, touch, &val) && (!val));
+        }
+        CORO_END();
+}
+
+
+/* Coroutine of the EV3 brick keys handling */
+CORO_DEFINE( handle_brick_control )
+        {
+                CORO_LOCAL uint8_t keys, pressed = EV3_KEY__NONE_;
+        CORO_BEGIN();
+        for ( ; ; ) {
+            /* Waiting any key is pressed or released */
+            CORO_WAIT( ev3_read_keys( &keys ) && ( keys != pressed ));
+            pressed = keys;
+            if ( pressed & EV3_KEY_BACK ) {
+                /* Stop the vehicle */
+                command = MOVE_NONE;
+                /* Quit */
+                app_alive = 0;
+            } else if ( pressed & EV3_KEY_UP ) {
+                /* Stop the vehicle */
+                command = MOVE_NONE;
+                /* Switch mode */
+                _set_mode(( mode == MODE_REMOTE ) ? MODE_AUTO : MODE_REMOTE );
+            }
+            CORO_YIELD();
+        }
+        CORO_END();
+        }
+
+/* Coroutine of IR remote control handling */
+CORO_DEFINE( handle_ir_control )
+        {
+                CORO_LOCAL int val;
+        CORO_BEGIN();
+        for ( ; ; ) {
+            /* Waiting IR remote control mode */
+            CORO_WAIT( mode == MODE_REMOTE );
+            val = IR_REMOTE__NONE_;
+            get_sensor_value( IR_CHANNEL, ir, &val );
+            switch ( val ) {
+                /* Forward */
+                case RED_UP_BLUE_UP:
+                    command = MOVE_FORWARD;
+                    break;
+                    /* Backward */
+                case RED_DOWN_BLUE_DOWN:
+                    command = MOVE_BACKWARD;
+                    break;
+                    /* Left */
+                case RED_UP:
+                case RED_UP_BLUE_DOWN:
+                case BLUE_DOWN:
+                    command = TURN_LEFT;
+                    break;
+                    /* Right */
+                case BLUE_UP:
+                case RED_DOWN_BLUE_UP:
+                case RED_DOWN:
+                    command = TURN_RIGHT;
+                    break;
+                    /* Stop */
+                case IR_REMOTE__NONE_:
+                case RED_UP_RED_DOWN:
+                case BLUE_UP_BLUE_DOWN:
+                case BEACON_MODE_ON:
+                    command = MOVE_NONE;
+                    break;
+            }
+            CORO_YIELD();
+        }
+        CORO
+
+        _END();
+        }
+/* Coroutine of IR proximity handling (self-driving),
+   based on Franz Detro drive_test.cpp */
+CORO_DEFINE( handle_ir_proximity )
+        {
+                CORO_LOCAL int front, prox;
+        CORO_BEGIN();
+        for ( ; ; ) {
+            /* Waiting self-driving mode */
+            CORO_WAIT( mode == MODE_AUTO );
+            prox = 0;
+            get_sensor_value( 0, ir, &prox );
+            if ( prox == 0 ) {
+                /* Oops! Stop the vehicle */
+                command = MOVE_NONE;
+            } else if ( prox < 20 ) {  /* Need for detour... */
+                front = prox;
+                /* Look to the left */
+                angle = -30;
+                do {
+                    command = TURN_ANGLE;
+                    CORO_WAIT( command == MOVE_NONE );
+                    prox = 0;
+                    get_sensor_value( 0, ir, &prox );
+                    if ( prox < front ) {
+                        if ( angle < 0 ) {
+                            /* Still looking to the left - look to the right */
+                            angle = 60;
+                        } else {
+                            /* Step back */
+                            command = STEP_BACKWARD;
+                            CORO_WAIT( command == MOVE_NONE );
+                        }
+                    }
+                } while (( prox > 0 ) && ( prox < 40 ) && ( mode == MODE_AUTO ));
+            } else {
+                /* Track is clear - Go! */
+                command = MOVE_FORWARD;
+            }
+            CORO_YIELD();
+        }
+        CORO_END();
+        }
+
+
+/* Coroutine of control the motors */
+CORO_DEFINE( drive )
+        {
+                CORO_LOCAL int speed_linear, speed_circular;
+        CORO_LOCAL int _wait_stopped;
+        CORO_BEGIN();
+        speed_linear = max_speed * SPEED_LINEAR / 100;
+        speed_circular = max_speed * SPEED_CIRCULAR / 100;
+        for ( ; ; ) {
+            /* Waiting new command */
+            CORO_WAIT( moving != command );
+            _wait_stopped = 0;
+            switch ( command ) {
+                case MOVE_NONE:
+                    _stop();
+                    _wait_stopped = 1;
+                    break;
+                case MOVE_FORWARD:
+                    _run_forever( -speed_linear, -speed_linear );
+                    break;
+                case MOVE_BACKWARD:
+                    _run_forever( speed_linear, speed_linear );
+                    break;
+                case TURN_LEFT:
+                    _run_forever( speed_circular, -speed_circular );
+                    break;
+                case TURN_RIGHT:
+                    _run_forever( -speed_circular, speed_circular );
+                    break;
+                case TURN_ANGLE:
+                    _run_to_rel_pos( speed_circular, DEGREE_TO_COUNT( -angle )
+                            , speed_circular, DEGREE_TO_COUNT( angle ));
+                    _wait_stopped = 1;
+                    break;
+                case STEP_BACKWARD:
+                    _run_timed( speed_linear, speed_linear, 1000 );
+                    _wait_stopped = 1;
+                    break;
+            }
+            moving = command;
+            if ( _wait_stopped ) {
+                /* Waiting the command is completed */
+                CORO_WAIT( !_is_running());
+                command = moving = MOVE_NONE;
+            }
+        }
+        CORO_END();
+        }

@@ -1,4 +1,5 @@
 CC = gcc
+
 CFLAGS  = -g -Wall
 
 default: MainProgram
@@ -16,6 +17,10 @@ EngineController.o: EngineController.c EngineController.h
 BluetoothController.o: BluetoothController.c BluetoothController.h
     $(CC) $(CFLAGS) -c BluetoothController.c
 
+TouchSensorController.o: TouchSensorController.c TouchSensorController.h
+    $(CC) $(CFLAGS) -c TouchSensorController.c TouchSensorController.h
 
 clean:
 	$(RM) count *.o *~
+
+
