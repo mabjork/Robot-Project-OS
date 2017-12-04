@@ -1,26 +1,17 @@
-CC = gcc
-
-CFLAGS  = -g -Wall
-
+CC=gcc
+CFLAGS= -I /ev3dev-c/source/ev3 -O2 -std=gnu99 -W -Wall -Wno-comment
 default: MainProgram
 
-MainProgram: MainProgram.o EngineController.o BluetoothController.o
-    $(CC) $(CFLAGS) -o MainProgram MainProgram.o EngineController.o BluetoothController.o
+MainProgram: MainProgram.o EngineController.o
 
+		gcc MainProgram.o EngineController.o -Wall -lm -lev3dev-c -o MainProgram
 
-MainProgram.o: MainProgram.c EngineController.h BluetoothController.h
-    $(CC) $(CFLAGS) -c MainProgram.c
+MainProgram.o:
 
-EngineController.o: EngineController.c EngineController.h
-    $(CC) $(CFLAGS) -c EngineController.c
+		$(CC) $(CFLAGS) -c src/Client/MainProgram.c -o MainProgram.o
 
-BluetoothController.o: BluetoothController.c BluetoothController.h
-    $(CC) $(CFLAGS) -c BluetoothController.c
+EngineController.o:
 
-TouchSensorController.o: TouchSensorController.c TouchSensorController.h
-    $(CC) $(CFLAGS) -c TouchSensorController.c TouchSensorController.h
-
-clean:
-	$(RM) count *.o *~
+		$(CC) $(CFLAGS) -c src/Client/EngineController.c -o EngineController.o
 
 

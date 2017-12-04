@@ -2,9 +2,9 @@
 #define ENGINECONTROLLER_H
 
 int initEngines();  /* An example function declaration */
-void runEngines(int * engines,int time);
-bool isRunning();
-bool stopEngines();
+void runEngines();
+int isRunning();
+int stopEngines();
 void setEngineMode(int value);
 
 #endif
