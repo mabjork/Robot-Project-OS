@@ -6,5 +6,9 @@ void runEngines();
 int isRunning();
 int stopEngines();
 void setEngineMode(int value);
+int turnRight(int degrees);
+int turnLeft(int degrees);
+int runForever(int speed);
+
 
 #endif
