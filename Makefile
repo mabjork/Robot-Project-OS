@@ -15,3 +15,10 @@ EngineController.o:
 		$(CC) $(CFLAGS) -c src/Client/EngineController.c -o EngineController.o
 
 
+run:
+	./MainProgram
+
+clean:
+	rm MainProgram
+	rm MainProgram.o
+	rm EngineController.o
