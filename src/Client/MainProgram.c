@@ -68,9 +68,10 @@ void startDiscovery(){
 
         int is_running = isRunning();
         float distance = getDistanceSensorValue();
+        int degrees = getCompassDegrees();
         printf("Distance sensor value: %f\n", distance);
         printf("Time since last check %u\n",(time(0)-time_since_last_wall_closenes_check));
-
+        printf("Current compass degree %i",degrees);
         if(distance < OBJECT_TO_CLOSE && is_running){
             turnLeftAndContinue(20);
         }
