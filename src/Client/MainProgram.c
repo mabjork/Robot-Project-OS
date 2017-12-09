@@ -63,14 +63,17 @@ void startDiscovery(){
     runForever(regular_speed);
     time_since_last_surroundings_check = (unsigned)time(NULL);
     time_since_last_wall_closenes_check = (unsigned)time(NULL);
+    printf("LOL");
     while(1){
         int command = readCommand();
 
         int is_running = isRunning();
         float distance = getDistanceSensorValue();
+        int degrees = getCompassDegrees();
         printf("Distance sensor value: %f\n", distance);
         printf("Time since last check %u\n",(time(0)-time_since_last_wall_closenes_check));
-
+        printf("Current compass degree %i",degrees);
+        
         if(distance < OBJECT_TO_CLOSE && is_running){
             turnLeftAndContinue(20);
         }
