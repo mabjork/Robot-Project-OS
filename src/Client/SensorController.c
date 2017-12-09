@@ -36,58 +36,90 @@ int getColor(){
   uint8_t sn_color;
   
   if ( ev3_search_sensor( LEGO_EV3_COLOR, &sn_color, 0 )) {
-    if ( ev3_search_sensor( LEGO_EV3_COLOR, &sn_color, 0 )) {
-        printf( "COLOR sensor is found, reading COLOR...\n" );
-        set_sensor_mode( sn_color, "COL-COLOR" );
-        for ( ; ; ) {
-          if ( !get_sensor_value( 0, sn_color, &val ) || ( val < 0 ) || ( val >= COLOR_COUNT )) {
-            val = 0;
-          }
-          printf( "\r(%s)", color[ val ]);
-          fflush( stdout );
-          Sleep( 200 );
-        }
-    } else {
-        printf( "COLOR sensor is NOT found\n" );
-        //while ( !_check_pressed( sn_touch )) Sleep( 100 );
-    }
+      printf( "COLOR sensor is found, reading COLOR...\n" );
+      set_sensor_mode( sn_color, "COL-COLOR" );
+      if ( !get_sensor_value( 0, sn_color, &val ) || ( val < 0 ) || ( val >= COLOR_COUNT )) {
+        val = 0;
+      }
+      printf( "\r(%f) \n", val);
+      fflush( stdout );
+  } else {
+      printf( "COLOR sensor is NOT found\n" );
   }
+  
   return val;
 }
 
-recognizeObject(){
+int recognizeObject(){
+  int obj_color;
+
+  obj_color = getColor();
+  //Black color, recognized as non-moveable obj
+  if ( obj_color == 1){
+    printf( "Black detected. This is a non-moveable object.");
+    return 1;
+  }
+
+  //Red color detected, recognized as moveable obj
+  else if ( obj_color == 5){
+    printf( "Red detected. This is a moveable object.")
+    return 2;
+  }
+  //Recognizes nothing. This may be changed
+  else { return 0; }
 
 }
 
 
-
-
 //# GYRO SENSOR -------------------------------------
-int getAngle(){
+int getGyroDegrees(){
 	int val;
   uint8_t sn_gyro;
   if ( ev3_search_sensor( LEGO_EV3_GYRO, &sn_gyro, 0 )) {
     set_sensor_mode( sn_gyro, "GYRO-ANG" );
+    printf( "\r(%f) \n", val);
+    fflush( stdout );
+
   }
   return val;
 }
 
-resetGyro(){
+void resetGyro(){
 
 }
 
 //# SONAR SENSOR ------------------------------------
 float getDistanceSensorValue(){
 	float value;
+
   uint8_t sn_sonar;
   if ( ev3_search_sensor( LEGO_EV3_US, &sn_sonar, 0 )) {
     set_sensor_mode( sn_sonar, "US-DIST-CM" );
-    if ( !get_sensor_value0(sn_sonar, &value )) {
-				value = -1;
+    if ( !get_sensor_value0( sn_sonar, &val )) {
+				val = -1;
 			}
+    printf( "\r(%f) \n", val);
+    fflush( stdout );
+
   }
-  return value;
+  return val;
   
+}
+
+// COMPASS SENSOR ----------------------------------
+int getCompassDegrees(){
+  int val;
+  uint8_t sn_compass;
+  if (ev3_search_sensor(NXT_ANALOG, &sn_compass, 0)){
+    set_sensor_mode( sn_compass, "COMPASS" );
+    if (!get_sensor_value0( sn_compass, &val )){
+      val = 0;
+    }
+    printf("\r(%f) \n", val);
+    fflush( stdout );
+  }
+
+  return val;
 }
 
 
