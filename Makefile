@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS= -I /ev3dev-c/source/ev3 -O2 -std=gnu99 -W -Wall -Wno-comment
-default: MainProgram
+default: MainProgram StopProgram
 
 MainProgram: MainProgram.o EngineController.o SensorController.o
 

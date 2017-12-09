@@ -77,8 +77,8 @@ resetGyro(){
 }
 
 //# SONAR SENSOR ------------------------------------
-int getDistanceSensorValue(){
-	int value;
+float getDistanceSensorValue(){
+	float value;
   uint8_t sn_sonar;
   if ( ev3_search_sensor( LEGO_EV3_US, &sn_sonar, 0 )) {
     set_sensor_mode( sn_sonar, "US-DIST-CM" );
