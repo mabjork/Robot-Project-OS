@@ -101,7 +101,7 @@ int initEngines(){
 
 
 int stopEngines(){
-    stop_drive_time = time(0)
+    stop_drive_time = time(0);
     multi_set_tacho_command_inx( motor, TACHO_STOP );
 }
 int isRunning( void )
@@ -127,11 +127,12 @@ void runToRelPos( int speed,int x, int y )
 {   int newX = currX - x;
     int newY = currY - y;
     int turnDeg = atan (newY/newX);
+    int turn_speed = max_speed * 0.3;
     if(x<currX){
-        turnLeft(turnDeg);
+        turnLeft(turn_speed,turnDeg);
     }
     else{
-        turnRight(turnRight);
+        turnRight(turn_speed,turnDeg);
     }
     int dist = sqrt(pow(newX,2) + pow(newY,2));
     printf("Discance %i\n",dist);
@@ -197,13 +198,13 @@ void waitForCommandToFinish(){
     
 }
 void raiseArm(){
-    degree = DEGREE_TO_COUNT(90);
+    int degree = DEGREE_TO_COUNT(90);
     set_tacho_speed_sp( arm, max_speed * 0.2);
     set_tacho_position_sp( arm,degree);
     set_tacho_command_inx( arm, TACHO_RUN_TO_REL_POS );
 }
 void lowerArm(){
-    degree = DEGREE_TO_COUNT(-90);
+    int degree = DEGREE_TO_COUNT(-90);
     set_tacho_speed_sp( arm, max_speed * 0.2);
     set_tacho_position_sp( arm,degree);
     set_tacho_command_inx( arm, TACHO_RUN_TO_REL_POS );

@@ -3,6 +3,7 @@
 #include "ev3.h"
 #include "ev3_port.h"
 #include "ev3_sensor.h"
+#include "headers/SensorController.h"
 
 // WIN32 /////////////////////////////////////////
 #ifdef __WIN32__
@@ -21,16 +22,16 @@
 const char const *color[] = { "?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WHITE", "BROWN" };
 #define COLOR_COUNT  (( int )( sizeof( color ) / sizeof( color[ 0 ])))
 
-# Functions -----------------------------------------------------------------
+//# Functions -----------------------------------------------------------------
 
-# Initialize Sensors ------------------------------
-initSensors(){
+//# Initialize Sensors ------------------------------
+void initSensors(){
   ev3_sensor_init();
 }
 
 
-# COLOR SENSOR ------------------------------------
-getColor(int val){
+//# COLOR SENSOR ------------------------------------
+int getColor(){
 	int val;
   uint8_t sn_color;
   
@@ -48,9 +49,10 @@ getColor(int val){
         }
     } else {
         printf( "COLOR sensor is NOT found\n" );
-        while ( !_check_pressed( sn_touch )) Sleep( 100 );
+        //while ( !_check_pressed( sn_touch )) Sleep( 100 );
     }
   }
+  return val;
 }
 
 recognizeObject(){
@@ -60,34 +62,33 @@ recognizeObject(){
 
 
 
-# GYRO SENSOR -------------------------------------
-getAngle(){
+//# GYRO SENSOR -------------------------------------
+int getAngle(){
 	int val;
   uint8_t sn_gyro;
   if ( ev3_search_sensor( LEGO_EV3_GYRO, &sn_gyro, 0 )) {
     set_sensor_mode( sn_gyro, "GYRO-ANG" );
   }
+  return val;
 }
 
 resetGyro(){
 
 }
 
-# SONAR SENSOR ------------------------------------
-getDistance(){
-	int val;
+//# SONAR SENSOR ------------------------------------
+int getDistanceSensorValue(){
+	int value;
   uint8_t sn_sonar;
   if ( ev3_search_sensor( LEGO_EV3_US, &sn_sonar, 0 )) {
     set_sensor_mode( sn_sonar, "US-DIST-CM" );
+    if ( !get_sensor_value0(sn_sonar, &value )) {
+				value = -1;
+			}
   }
+  return value;
+  
 }
 
 
-# Main Sensor Controller program ---------------------------------------------
 
-int main( void ){
-	int val;
-	uint32_t n, i, ii;
-	uint8_t sn_color, sn_ir;
-
-}

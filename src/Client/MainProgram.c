@@ -5,6 +5,7 @@
 #include <time.h>
 #include <sys/socket.h>
 #include "./headers/EngineController.h"
+#include "headers/SensorController.h"
 #include "ev3.h"
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
@@ -15,7 +16,9 @@ enum {
     RELEASE_BALL,
 };
 
-
+int max_speed;
+int regular_speed;
+int turn_speed;
 
 int main(int argc, char const *argv[]) {
     printf( "LOL this should work\n" );
@@ -24,6 +27,9 @@ int main(int argc, char const *argv[]) {
     initEngines();
     printf("Engines initiated\n");
     discoverEngines();
+    initSensors();
+    startDiscovery();
+    /*
     printf("why is it not printing");
     printf("Engines discovered");
     int max_speed = getMaxSpeed();
@@ -41,41 +47,47 @@ int main(int argc, char const *argv[]) {
         break;
     }
     stopEngines();
-    
-    
+    */
     return 0;
 
 }
 
 void startDiscovery(){
-    int max_speed = getMaxSpeed();
-    int regular_speed = max_speed * 0.5;
-    int turn_speed = 0.3 * max_speed;
+    max_speed = getMaxSpeed();
+    regular_speed = max_speed * 0.5;
+    turn_speed = 0.3 * max_speed;
     turnLeft(turn_speed,90);
     runForever(regular_speed);
     while(1){
         int command = readCommand();
 
         int is_running = isRunning();
-
-        int sensor_value = getSensorValue();
-        if(sensor_value < 1000 && is_running){
-            stopEngines();
+        int distance = getDistanceSensorValue();
+        printf("Distance sensor value: %s", distance);
+        if(distance < 1000 && is_running){
+            turnLeftAndContinue(20);
         }
-        if(shouldTurn()){
-
-        }
-        else{
-
-        }
+        
+        Sleep(50);
 
     }
 }
 int shouldTurn(){
     return 0;
 }
-void turnAndContinue(){
-
+void turnLeftAndContinue(int angle){
+    stopEngines();
+    Sleep(100);
+    turnLeft(turn_speed,angle);
+    waitForCommandToFinish();
+    runForever(regular_speed);
+}
+void turnRightAndContinue(int angle){
+    stopEngines();
+    Sleep(100);
+    turnRight(turn_speed,angle);
+    waitForCommandToFinish();
+    runForever(regular_speed);
 }
 
 
