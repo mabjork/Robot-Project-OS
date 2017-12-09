@@ -72,7 +72,7 @@ int recognizeObject(){
 
 
 //# GYRO SENSOR -------------------------------------
-int getGyroDegress(){
+int getGyroDegrees(){
 	int val;
   uint8_t sn_gyro;
   if ( ev3_search_sensor( LEGO_EV3_GYRO, &sn_gyro, 0 )) {
