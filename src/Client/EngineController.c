@@ -167,7 +167,7 @@ void turnRight(int speed,int degrees){
     int deg2 = DEGREE_TO_COUNT(-degrees);
     curr_deg = (curr_deg - degrees ) % 360;
     set_tacho_speed_sp( motor[ L ], speed );
-    set_tacho_speed_sp( motor[ R ], speed );
+    set_tacho_speed_sp( motor[ R ], -speed );
     set_tacho_position_sp( motor[ L ], deg1 );
     set_tacho_position_sp( motor[ R ], deg2 );
     multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
@@ -177,7 +177,7 @@ void turnLeft(int speed,int degrees){
     int deg1 = DEGREE_TO_COUNT(degrees);
     int deg2 = DEGREE_TO_COUNT(-degrees);
     curr_deg = (curr_deg + degrees ) % 360;
-    set_tacho_speed_sp( motor[ L ], speed );
+    set_tacho_speed_sp( motor[ L ], -speed );
     set_tacho_speed_sp( motor[ R ], speed );
     set_tacho_position_sp( motor[ L ], deg2 );
     set_tacho_position_sp( motor[ R ], deg1 );
@@ -197,6 +197,7 @@ void waitForCommandToFinish(){
     } while ( stateR && stateL);
     
 }
+
 void raiseArm(){
     int degree = DEGREE_TO_COUNT(90);
     set_tacho_speed_sp( arm, max_speed * 0.2);
@@ -209,6 +210,23 @@ void lowerArm(){
     set_tacho_position_sp( arm,degree);
     set_tacho_command_inx( arm, TACHO_RUN_TO_REL_POS );
 }
+
+int getLeftEngineState(){
+    FLAGS_T stateL;
+
+    get_tacho_state_flags( motor[L], &stateL );
+
+    return stateL;
+}
+int getRightEngineState(){
+    FLAGS_T state;
+
+    get_tacho_state_flags( motor[L], &state );
+    printf("State: %i",state);
+    return state;
+}
+
+
 
 
 
