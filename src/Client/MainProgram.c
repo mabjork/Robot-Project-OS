@@ -8,6 +8,14 @@
 #include "ev3.h"
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
+enum {
+    START_DISCOVERY,
+    STOP_DISCOVERY,
+    BACK_TO_START,
+    RELEASE_BALL,
+};
+
+
 
 int main(int argc, char const *argv[]) {
     printf( "LOL this should work\n" );
@@ -38,4 +46,53 @@ int main(int argc, char const *argv[]) {
     return 0;
 
 }
+
+void startDiscovery(){
+    int max_speed = getMaxSpeed();
+    int regular_speed = max_speed * 0.5;
+    int turn_speed = 0.3 * max_speed;
+    turnLeft(turn_speed,90);
+    runForever(regular_speed);
+    while(1){
+        int command = readCommand();
+
+        int is_running = isRunning();
+
+        int sensor_value = getSensorValue();
+        if(sensor_value < 1000 && is_running){
+            stopEngines();
+        }
+        if(shouldTurn()){
+
+        }
+        else{
+
+        }
+
+    }
+}
+int shouldTurn(){
+    return 0;
+}
+void turnAndContinue(){
+
+}
+
+
+void backAwayAndTurn(){
+    int max_speed = getMaxSpeed();
+    int regular_speed = max_speed * 0.5;
+    int turn_speed = 0.3 * max_speed;
+    runTimed(regular_speed,1000);
+    turnLeft(turn_speed,180);
+}
+
+int* findDirectionNotDiscovered(){
+
+}
+int readCommand(){
+
+}
+
+
 

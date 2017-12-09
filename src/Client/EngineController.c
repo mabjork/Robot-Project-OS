@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <stdarg.h>
 #include "ev3.h"
 #include "ev3_port.h"
@@ -8,13 +7,10 @@
 #include "ev3_sensor.h"
 #include "./headers/EngineController.h"
 #include <math.h>
-
-
-
 #include <unistd.h>
+#include <time.h>
+
 #define Sleep( msec ) usleep(( msec ) * 1000 )
-
-
 #define L_MOTOR_PORT      OUTPUT_C
 #define L_MOTOR_EXT_PORT  EXT_PORT__NONE_
 #define R_MOTOR_PORT      OUTPUT_B
@@ -22,8 +18,8 @@
 #define IR_CHANNEL        0
 #define SPEED_LINEAR      75  /* Motor speed for linear motion, in percents */
 #define SPEED_CIRCULAR    50  /* ... for circular motion */
-
 #define DEGREE_TO_COUNT( d )  (( d ) * 260 / 90 )
+
 int app_alive;
 int max_speed;  /* Motor maximal speed */
 int mode;  /* Driving mode */
@@ -33,11 +29,13 @@ int angle;    /* Angle of rotation */
 uint8_t ir, touch;  /* Sequence numbers of sensors */
 enum { L, R };
 uint8_t motor[3]; /* Sequence numbers of motors */
+uint8_t arm;
 int currX;
 int currY;
 int start_deg;
 int curr_deg;
-
+time_t start_drive_time;
+time_t stop_drive_time;
 enum {
     MOVE_NONE,
     MOVE_FORWARD,
@@ -85,6 +83,7 @@ void discoverEngines(){
         }
         printf("Port: %i\n",port);
     }
+    arm = motor[3];
 
 
     printf("%i\n",motor[L]);
@@ -100,11 +99,9 @@ int initEngines(){
     return 0;
 }
 
-void runEngines(){
-    
-}
 
 int stopEngines(){
+    stop_drive_time = time(0)
     multi_set_tacho_command_inx( motor, TACHO_STOP );
 }
 int isRunning( void )
@@ -124,11 +121,18 @@ void runForever( int speed)
     set_tacho_speed_sp( motor[ L ], speed );
     set_tacho_speed_sp( motor[ R ], speed );
     multi_set_tacho_command_inx( motor, TACHO_RUN_FOREVER );
+    start_drive_time = time(0);
 }
 void runToRelPos( int speed,int x, int y )
 {   int newX = currX - x;
     int newY = currY - y;
     int turnDeg = atan (newY/newX);
+    if(x<currX){
+        turnLeft(turnDeg);
+    }
+    else{
+        turnRight(turnRight);
+    }
     int dist = sqrt(pow(newX,2) + pow(newY,2));
     printf("Discance %i\n",dist);
     set_tacho_speed_sp( motor[ L ], speed );
@@ -136,6 +140,7 @@ void runToRelPos( int speed,int x, int y )
     set_tacho_position_sp( motor[ L ], dist );
     set_tacho_position_sp( motor[ R ], dist );
     multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+    start_drive_time = time(0);
 }
 void runTimed( int speed, int ms )
 {
@@ -147,10 +152,14 @@ void runTimed( int speed, int ms )
     multi_set_tacho_time_sp( motor, ms );
     multi_set_tacho_command_inx( motor, TACHO_RUN_TIMED );
     printf("Should now be running\n");
+    start_drive_time = time(0);
 }
 
-int* getPos(){
-
+int getXPos(){
+    return currX;
+}
+int getYPos(){
+    return currY;
 }
 void turnRight(int speed,int degrees){
     int deg1 = DEGREE_TO_COUNT(degrees);
@@ -162,6 +171,7 @@ void turnRight(int speed,int degrees){
     set_tacho_position_sp( motor[ R ], deg2 );
     multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
 }
+
 void turnLeft(int speed,int degrees){
     int deg1 = DEGREE_TO_COUNT(degrees);
     int deg2 = DEGREE_TO_COUNT(-degrees);
@@ -175,6 +185,32 @@ void turnLeft(int speed,int degrees){
 int getMaxSpeed(){
     return max_speed;
 }
+
+void waitForCommandToFinish(){
+    FLAGS_T stateL;
+    FLAGS_T stateR;
+    do {
+        get_tacho_state_flags( motor[L], &stateL );
+        get_tacho_state_flags( motor[R], &stateR );
+        
+    } while ( stateR && stateL);
+    
+}
+void raiseArm(){
+    degree = DEGREE_TO_COUNT(90);
+    set_tacho_speed_sp( arm, max_speed * 0.2);
+    set_tacho_position_sp( arm,degree);
+    set_tacho_command_inx( arm, TACHO_RUN_TO_REL_POS );
+}
+void lowerArm(){
+    degree = DEGREE_TO_COUNT(-90);
+    set_tacho_speed_sp( arm, max_speed * 0.2);
+    set_tacho_position_sp( arm,degree);
+    set_tacho_command_inx( arm, TACHO_RUN_TO_REL_POS );
+}
+
+
+
 
 
 
