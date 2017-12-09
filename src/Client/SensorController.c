@@ -32,7 +32,7 @@ void initSensors(){
 
 //# COLOR SENSOR ------------------------------------
 int getColor(){
-	int val;
+  int val;
   uint8_t sn_color;
   
   if ( ev3_search_sensor( LEGO_EV3_COLOR, &sn_color, 0 )) {
@@ -65,6 +65,11 @@ int recognizeObject(){
     printf( "Red detected. This is a moveable object.")
     return 2;
   }
+
+  else if( obj_color == 2){
+    print("Blue detected. This is a moveable object.")
+  }
+  
   //Recognizes nothing. This may be changed
   else { return 0; }
 
@@ -72,8 +77,8 @@ int recognizeObject(){
 
 
 //# GYRO SENSOR -------------------------------------
-int getGyroDegrees(){
-	int val;
+int getGyroDegress(){
+  int val;
   uint8_t sn_gyro;
   if ( ev3_search_sensor( LEGO_EV3_GYRO, &sn_gyro, 0 )) {
     set_sensor_mode( sn_gyro, "GYRO-ANG" );
@@ -85,18 +90,20 @@ int getGyroDegrees(){
 }
 
 void resetGyro(){
+  unistd sn_gyro;
+  set_sensor_mode( sn_gyro, "GYRO-RATE" );
 
 }
 
 //# SONAR SENSOR ------------------------------------
 int getDistanceSensorValue(){
-	int val;
+  int val;
   uint8_t sn_sonar;
   if ( ev3_search_sensor( LEGO_EV3_US, &sn_sonar, 0 )) {
     set_sensor_mode( sn_sonar, "US-DIST-CM" );
     if ( !get_sensor_value0( sn_sonar, &val )) {
-				val = -1;
-			}
+        val = -1;
+      }
     printf( "\r(%f) \n", val);
     fflush( stdout );
 
