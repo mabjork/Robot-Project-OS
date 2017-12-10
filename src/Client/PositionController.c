@@ -63,11 +63,6 @@ void updateMap(int x,int y,char value){
     insertIntoMap(&map,x,y,value);
 }
 
-
-
-
-
-
 void initArray(struct Array *a, size_t initialSize) {
   a->array = (char *)malloc(initialSize * sizeof(int));
   a->used = 0;

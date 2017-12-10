@@ -73,23 +73,24 @@ void startDiscovery(){
     //runForever(regular_speed);
     time_since_last_surroundings_check = (unsigned)time(NULL);
     time_since_last_wall_closenes_check = (unsigned)time(NULL);
-    printf("LOL");
+    gettimeofday(&tval_before, NULL);
     while(1){
-        gettimeofday(&tval_before, NULL);
+        
         int command = readCommand();
 
         int is_running = isRunning();
         float distance = getDistanceSensorValue();
-        float degrees = getCompassDegrees();
+        float heading = getCompassDegrees();
         int gyro_value =getGyroDegress();
         printf("Distance sensor value: %f\n", distance);
         printf("Time since last check %u\n",(time(0)-time_since_last_wall_closenes_check));
-        printf("Current compass degree %f\n",degrees);
+        printf("Current compass degree %f\n",heading);
         printf("Current gyro value %f\n",gyro_value);
         
         if(distance < OBJECT_TO_CLOSE && is_running){
-            //turnLeftAndContinue(20);
-            //evaluatePosition();
+            measureAndUpdateTraveledDistance();
+            evaluatePosition();
+            gettimeofday(&tval_before, NULL);
         }
         /*
         if(time(0) - time_since_last_surroundings_check > TIME_TO_CHECK_SURROUNDINGS){
@@ -97,20 +98,39 @@ void startDiscovery(){
             time_since_last_surroundings_check = time(0);
         }
         */
-        if(time(0) - time_since_last_wall_closenes_check > TIME_TO_CHECK_WALL_CLOSENES){
+        else{
+            if(time(0) - time_since_last_wall_closenes_check > TIME_TO_CHECK_WALL_CLOSENES){
             //checkIfCloseToWall();
             time_since_last_wall_closenes_check = time(NULL);
+            }
+            
+            measureAndUpdateTraveledDistance();
+            gettimeofday(&tval_before, NULL);
+            
+            Sleep(100);
         }
-        gettimeofday(&tval_after, NULL);
-
-        timersub(&tval_after, &tval_before, &tval_result);
-
-        updateRobotPosition(&tval_result);
-
-        Sleep(100);
+        
 
     }
 }
+void measureAndUpdateTraveledDistance(){
+    gettimeofday(&tval_after, NULL);
+
+    timersub(&tval_after, &tval_before, &tval_result);
+
+    double traveled_distance = calculateDistance(&tval_result);
+
+    updateRobotPosition(traveled_distance);
+
+    setCurrentHeading(heading)
+}
+double calculateDistance(timeval *time){
+
+    double distance = regular_speed*(time.tv_sec*1000000.0 + time.tv_usec)/1000000
+
+    return distance;
+}
+
 void evaluatePosition(){
     stopEngines();
     checkSouroundings();
