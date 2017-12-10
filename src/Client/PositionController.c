@@ -30,6 +30,7 @@ struct Map{
     struct Array *rows;
     size_t height;
     size_t width;
+    size_t longest_row;
 };
 
 
@@ -49,7 +50,7 @@ void initPositionController(int initialHeading){
     INITIAL_HEADING = initialHeading;
     initMap(&map,1);
 }
-
+/*
 void updateRobotPosition(int distance){
     int dx = distance * sin(HEADING-INITIAL_HEADING);
     int dy = distance * cos(HEADING-INITIAL_HEADING);
@@ -59,14 +60,21 @@ void updateRobotPosition(int distance){
     current_square_y = CalcSquareY;
     
 }
-void updateMap(int x,int y,char value){
-    insertIntoMap(&map,x,y,value);
+*/
+void updateMap(struct Map *map,int x,int y,char value){
+    struct Array *rows = map->rows;
+    struct Array row = *(rows + y);
+    row.array[x] = value;
 }
 
 void initArray(struct Array *a, size_t initialSize) {
   a->array = (char *)malloc(initialSize * sizeof(int));
   a->used = 0;
   a->size = initialSize;
+  
+  for(int i = 0; i<initialSize;i++){
+        a->array[i] = 'O';
+  }
 }
 
 void insertArray(struct Array *a, int element) {
@@ -86,9 +94,13 @@ void freeArray(struct Array *a) {
 void initMap(struct Map *m,size_t initialHeight){
     m->rows = (struct Array *)malloc(initialHeight * sizeof(struct Array));
     m->height = 1;
-    m->width = sizeof(struct Array);
+    m->width = 1;
+    struct Array row;
+    initArray(&row,m->width);
+    m->rows[0] = row;
 }
 void insertIntoMap(struct Map *m,int x,int y,char value){
+    
     struct Array *rows;
     if(y > m->height){
         m->height = y;
@@ -101,6 +113,106 @@ void insertIntoMap(struct Map *m,int x,int y,char value){
         row.array = (char *)realloc(row.array,row.size * sizeof(char));
     }
     row.array[x] = value;
+}
+void moveElementsUp(struct Map *m){
+
+}
+void addRowLower(struct Map *m){
+    m->height += 1;
+    struct Array row;
+    initArray(&row,m->width);
+    struct Array *rows = m-> rows;
+    for (int i = m->height-1;i>0;i--){
+        *(rows + i) = *(rows + i - 1);   
+    }
+    *(rows) = row;
+}
+void addRow(struct Map *m){
+    m->height += 1;
+    struct Array row;
+    initArray(&row,m->width);
+    m->rows = (struct Array*)realloc(m->rows,m->height * sizeof(row));
+    m->rows[m->height-1] = row;
+}
+void addCol(struct Map *m){
+    m->width += 1;
+    struct Array row;
+    struct Array *rows = m-> rows;
+    for (int i = 0;i<m->height;i++){
+        row = *(rows + i);
+        printf("This row size %i\n",row.size);
+        row.size = m->width;
+        printf("This row size %i\n",row.size);
+        row.array = (char *)realloc(row.array,row.size * sizeof(char));
+        row.array[row.size-1] = 'O';
+        *(rows + i) = row;
+        //printf("Last element %c\n",row.array[row.size-1]);
+    }
+    printf("SIZE : %i\n",(*(rows)).size);
+}
+void addColLower(struct Map *m){
+    m->width += 1;
+    struct Array row;
+    struct Array *rows = m-> rows;
+    for (int i = 0;i<m->height;i++){
+
+        row = *(rows + i);
+        row.size = m->width;
+        printf("THis is the width %i\n", m->width);
+        row.array = (char *)realloc(row.array,row.size * sizeof(char));
+    }
+    for (int i = 0;i<m->height;i++){
+        printf("Second loop infinite\n");
+        row = *(rows + i);
+        printf("Lol  Row size : %i\n",row.size);
+        
+        for(int j = row.size; j>0;j--){
+            printf("J is %i\n",j);
+            
+            printf("Third loop infinite");
+            row.array[j] = row.array[j-1];
+        }
+        
+        row.array[0] = 'O';
+    }
+    
+    
+}
+
+int main(int argc, char const *argv[]) {
+    struct Map map;
+    initMap(&map , 1);
+    printMatrix(&map);
+    addCol(&map);
+    printMatrix(&map);
+    addRow(&map);
+    printMatrix(&map);
+    addColLower(&map);
+    printMatrix(&map);
+    addRowLower(&map);
+    printMatrix(&map);
+    updateMap(&map,0,0,'X');
+    printMatrix(&map);
+    updateMap(&map,1,1,'H');
+    printMatrix(&map);
+    addRow(&map);
+    printMatrix(&map);
+}
+void printMatrix(struct Map *m){
+    struct Array row;
+    struct Array *rows = m-> rows;
+    printf("Map height %i\n",m->height);
+    
+    for(int i = 0;i<m->height;i++){
+        row = *(rows + i);
+        //printf("Row size = %i\n",row.size);
+        for(int j = 0;j < m->width; j++){
+
+            printf("%c",row.array[j]);
+        }
+        printf("\n");
+    }
+    
 }
 
 
