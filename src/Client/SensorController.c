@@ -62,12 +62,12 @@ int recognizeObject(){
 
   //Red color detected, recognized as moveable obj
   else if ( obj_color == 5){
-    printf( "Red detected. This is a moveable object.")
+    printf( "Red detected. This is a moveable object.");
     return 2;
   }
 
   else if( obj_color == 2){
-    print("Blue detected. This is a moveable object.")
+    printf("Blue detected. This is a moveable object.");
   }
   
   //Recognizes nothing. This may be changed
@@ -77,20 +77,23 @@ int recognizeObject(){
 
 
 //# GYRO SENSOR -------------------------------------
-int getGyroDegress(){
-  int val;
+float getGyroDegress(){
+  float val;
   uint8_t sn_gyro;
   if ( ev3_search_sensor( LEGO_EV3_GYRO, &sn_gyro, 0 )) {
     set_sensor_mode( sn_gyro, "GYRO-ANG" );
-    printf( "\r(%f) \n", val);
-    fflush( stdout );
+    if ( !get_sensor_value0(sn_gyro, &val )) {
+				val = 0;
+		}
+    //printf( "\r(%f) \n", val);
+    //fflush( stdout );
 
   }
   return val;
 }
 
 void resetGyro(){
-  unistd sn_gyro;
+  uint8_t sn_gyro;
   set_sensor_mode( sn_gyro, "GYRO-RATE" );
 
 }
@@ -106,8 +109,8 @@ float getDistanceSensorValue(){
     if ( !get_sensor_value0( sn_sonar, &val )) {
         val = -1;
       }
-    printf( "\r(%f) \n", val);
-    fflush( stdout );
+    //printf( "\r(%f) \n", val);
+    //fflush( stdout );
 
   }
   return val;
@@ -115,16 +118,16 @@ float getDistanceSensorValue(){
 }
 
 // COMPASS SENSOR ----------------------------------
-int getCompassDegrees(){
-  int val;
+float getCompassDegrees(){
+  float val;
   uint8_t sn_compass;
-  if (ev3_search_sensor(NXT_ANALOG, &sn_compass, 0)){
-    set_sensor_mode( sn_compass, "COMPASS" );
+  if (ev3_search_sensor(HT_NXT_COMPASS, &sn_compass, 0)){
+    set_sensor_mode( &sn_compass, "COMPASS" );
     if (!get_sensor_value0( sn_compass, &val )){
       val = 0;
     }
-    printf("\r(%f) \n", val);
-    fflush( stdout );
+    //printf("\r(%f) \n", val);
+    //fflush( stdout );
   }
 
   return val;
