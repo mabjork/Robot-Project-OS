@@ -5,7 +5,8 @@
 #include "ev3_port.h"
 #include "ev3_tacho.h"
 #include "ev3_sensor.h"
-#include "./headers/EngineController.h"
+#include "headers/EngineController.h"
+#include "headers/SensorController.h"
 #include <math.h>
 #include <unistd.h>
 #include <time.h>
@@ -19,14 +20,12 @@
 #define SPEED_LINEAR      75  /* Motor speed for linear motion, in percents */
 #define SPEED_CIRCULAR    50  /* ... for circular motion */
 #define DEGREE_TO_COUNT( d )  (( d ) * 260 / 90 )
+#define DEGREE_ERROR_MARGIN 1
 
 int app_alive;
 int max_speed;  /* Motor maximal speed */
-int mode;  /* Driving mode */
 int moving;   /* Current moving */
-int command;  /* Command for the 'drive' coroutine */
-int angle;    /* Angle of rotation */
-uint8_t ir, touch;  /* Sequence numbers of sensors */
+
 enum { L, R };
 uint8_t motor[3]; /* Sequence numbers of motors */
 uint8_t arm;
@@ -36,6 +35,7 @@ int start_deg;
 int curr_deg;
 time_t start_drive_time;
 time_t stop_drive_time;
+
 enum {
     MOVE_NONE,
     MOVE_FORWARD,
@@ -113,7 +113,6 @@ int isRunning( void )
     if ( state != TACHO_STATE__NONE_ ) return ( 1 );
     return ( 0 );
 }
-
 
 
 void runForever( int speed)
@@ -197,6 +196,7 @@ void waitForCommandToFinish(){
     } while ( stateR && stateL);
     
 }
+//Line eeeeee
 
 void raiseArm(){
     int degree = DEGREE_TO_COUNT(90);
@@ -225,6 +225,33 @@ int getRightEngineState(){
     printf("State: %i",state);
     return state;
 }
+void turnToDeg(int target){
+    int current_deg = getCompassDegrees();
+    do{
+        
+        int diff = (target - current_deg) % 360;
+        turnNumberOfDegs(diff);
+        waitForCommandToFinish();
+        current_deg = getCompassDegrees();
+    }while(abs(current_deg-target) < DEGREE_ERROR_MARGIN);    
+}
+void turnNumberOfDegs( int degrees){
+    int deg1 = DEGREE_TO_COUNT(degrees);
+    int deg2 = DEGREE_TO_COUNT(-degrees);
+    curr_deg = (curr_deg + degrees ) % 360;
+    set_tacho_speed_sp( motor[ L ], -speed );
+    set_tacho_speed_sp( motor[ R ], speed );
+    set_tacho_position_sp( motor[ L ], deg2 );
+    set_tacho_position_sp( motor[ R ], deg1 );
+    multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+}
+void turnNumberOfDegsCorrected(int degree){
+    int current_deg = getCompassDegrees();
+    int target = (current_deg - degree) % 360;
+    turnToDeg(target);
+}
+
+
 
 
 

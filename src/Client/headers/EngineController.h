@@ -16,6 +16,8 @@ void runForever(int speed);
 void runToRelPos(int x, int y, int speed);
 void discoverEngines();
 void waitForCommandToFinish();
+void turnToDeg(int target);
+void turnNumberOfDegsCorrected(int degree);
 
 
 

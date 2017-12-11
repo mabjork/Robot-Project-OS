@@ -2,6 +2,7 @@
 #define SENSORCONTROLLER_H
 
 float getDistanceSensorValue();
-int getCompassDegrees();
+float getCompassDegrees();
+float getGyroDegress();
 
 #endif

@@ -4,9 +4,12 @@
 #include <stdarg.h>
 #include <time.h>
 #include <sys/socket.h>
-#include "./headers/EngineController.h"
+#include <sys/time.h>
+#include "headers/EngineController.h"
 #include "headers/SensorController.h"
+#include "headers/PositionController.h"
 #include "ev3.h"
+
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 #define OBJECT_TO_CLOSE 350
 #define TIME_TO_CHECK_SURROUNDINGS 10
@@ -15,17 +18,23 @@
 #define MAP_WIDTH 100
 #define MAP_SCALE 1/3
 
-enum {
+enum directions{
+    FRONT,
+    LEFT,
+    BACK,
+    RIGHT
+};
+enum commands{
     START_DISCOVERY,
     STOP_DISCOVERY,
     BACK_TO_START,
     RELEASE_BALL,
 };
-enum {
+enum robot_state{
     STOPPED,
     RUNNING
 };
-enum {
+enum method_state{
     FINISHED,
     INTERUPTED
 };
@@ -34,9 +43,11 @@ int regular_speed;
 int turn_speed;
 unsigned time_since_last_surroundings_check;
 unsigned time_since_last_wall_closenes_check;
+
 char surroundins_map[MAP_HEIGHT][MAP_WIDTH];
+float distances_around_robot[4];
 
-
+struct timeval tval_before, tval_after, tval_result;
 
 
 
@@ -63,60 +74,117 @@ void startDiscovery(){
     runForever(regular_speed);
     time_since_last_surroundings_check = (unsigned)time(NULL);
     time_since_last_wall_closenes_check = (unsigned)time(NULL);
-    printf("LOL");
+    gettimeofday(&tval_before, NULL);
     while(1){
+        
         int command = readCommand();
 
         int is_running = isRunning();
         float distance = getDistanceSensorValue();
-        int degrees = getCompassDegrees();
+        float heading = getCompassDegrees();
+        int gyro_value =getGyroDegress();
         printf("Distance sensor value: %f\n", distance);
         printf("Time since last check %u\n",(time(0)-time_since_last_wall_closenes_check));
-        printf("Current compass degree %i",degrees);
+        printf("Current compass degree %f\n",heading);
+        //printf("Current gyro value %f\n",gyro_value);
         
         if(distance < OBJECT_TO_CLOSE && is_running){
-            turnLeftAndContinue(20);
+            measureAndUpdateTraveledDistance(heading);
+            evaluatePosition();
+            gettimeofday(&tval_before, NULL);
         }
-        /*
-        if(time(0) - time_since_last_surroundings_check > TIME_TO_CHECK_SURROUNDINGS){
-            checkSouroundings();
-            time_since_last_surroundings_check = time(0);
-        }
-        */
-        if(time(0) - time_since_last_wall_closenes_check > TIME_TO_CHECK_WALL_CLOSENES){
-            checkIfCloseToWall();
+        
+        else{
+            if(time(0) - time_since_last_wall_closenes_check > TIME_TO_CHECK_WALL_CLOSENES){
+            //checkIfCloseToWall();
             time_since_last_wall_closenes_check = time(NULL);
+            }
+            
+            measureAndUpdateTraveledDistance(heading);
+            gettimeofday(&tval_before, NULL);
+            
+            Sleep(1000);
         }
-
-
-
-        Sleep(50);
+        
 
     }
 }
-void checkIfCloseToWall(){
-    stopEngines();
-    Sleep(100);
-    turnLeft(turn_speed,45);
-    waitForCommandToFinish();
-    Sleep(1000);
-    turnRight(turn_speed,45);
-    waitForCommandToFinish();
-    Sleep(500);
-    turnRight(turn_speed,45);
-    waitForCommandToFinish();
-    Sleep(1000);
-    turnLeft(turn_speed,45);
-    waitForTurnToComplete();
-    Sleep(1000);
-    runForever(regular_speed);
+
+double calculateDistance(struct timeval *time){
+
+    double distance = regular_speed*(time->tv_sec*1000000.0 + time->tv_usec)/1000000;
+
+    return distance;
+}
+void measureAndUpdateTraveledDistance(int heading){
+    gettimeofday(&tval_after, NULL);
+
+    timersub(&tval_after, &tval_before, &tval_result);
+
+    double traveled_distance = calculateDistance(&tval_result);
+    printf("Traveled distance %d", traveled_distance);
+    updateRobotPosition(traveled_distance);
+
+    setCurrentHeading(heading);
+}
+
+
+void setMapPointValue(){
     
 }
-int shouldTurn(){
-    return 0;
-}
-void checkSouroundings(){
+void seeWhatOpstacleIs(){
 
+}
+
+
+void evaluatePosition(){
+    stopEngines();
+    checkSouroundings();
+    int direction = evaluateSurroundings();
+
+    if(direction == FRONT){
+        runForever();
+    }else if(direction == BACK){
+        turnNumberOfDegsCorrected(180);
+        runForever();
+    }else if(direction == LEFT){
+        turnNumberOfDegsCorrected(90);
+        runForever();
+    }else if(direction == RIGHT){
+        turnNumberOfDegsCorrected(-90);
+        runForever();
+    }
+
+}
+void turnToMatchDegree(int degree){
+    turnToDeg(degree);
+}
+
+void checkSouroundings(){
+    stopEngines();
+    Sleep(1000);
+    distances_around_robot[FRONT] = getDistanceSensorValue();
+    turnLeft(turn_speed,45);
+    Sleep(1000);
+    distances_around_robot[LEFT] = getDistanceSensorValue();
+    turnLeft(turn_speed,45);
+    Sleep(1000);
+    distances_around_robot[BACK] = getDistanceSensorValue();
+    turnLeft(turn_speed,45);
+    Sleep(1000);
+    distances_around_robot[RIGHT] = getDistanceSensorValue();
+    turnLeft(turn_speed,45);
+    Sleep(1000);
+    
+}
+int evaluateSurroundings(){
+    int current_highest = 0;
+    for(int i = 1; i<sizeof(distances_around_robot);i++){
+        if(distances_around_robot[i] > distances_around_robot[current_highest]){
+            current_highest = i;
+        }
+    }
+    return current_highest;
 }
 void turnLeftAndContinue(int angle){
     stopEngines();
@@ -144,53 +212,11 @@ void backAwayAndTurn(){
     turnLeft(turn_speed,180);
 }
 
-int* findDirectionNotDiscovered(){
 
-}
 int readCommand(){
 
 }
-/*
-int waitForCommandToFinish(){
-    int stateL;
-    int stateR;
-    do {
-        stateL = getLeftEngineState();
-        stateR = getRightEngineState();
-        float distance = getDistanceSensorValue();
-        printf("Distance sensor value: %f\n", distance);
-        if(distance < OBJECT_TO_CLOSE){
-            printf("To close");
-            //turnLeftAndContinue(20);
-            stopEngines();
-            return INTERUPTED;
-        }
-    } while(stateR == STOPPED && stateL == STOPPED);
 
-    return FINISHED;
-}
-*/
-void initMap(){
-    for(int i = 0; i<MAP_HEIGHT;i++){
-        for(int j = 0;j<MAP_WIDTH;j++){
-            surroundins_map[i][j] = " ";
-        }
-    }
-    for(int i = MAP_HEIGHT/2-1;i<  MAP_HEIGHT/2+2; i++){
-        for(int j =  MAP_WIDTH/2-1; j < MAP_WIDTH/2+2; j++){
-            surroundins_map[i][j] = "R";
-        }
-    }
-}
-void updateMap(){
-    float distance = getDistanceSensorValue();
-    float driven_distance;
-    for(int i = MAP_HEIGHT/2-1;i<  MAP_HEIGHT/2+2; i++){
-        for(int j =  MAP_WIDTH/2-1; j < MAP_WIDTH/2+2; j++){
-            surroundins_map[i][j] = " ";
-        }
-    }
-}
 void waitForTurnToComplete(){
     int stateL;
     int stateR;
@@ -199,8 +225,44 @@ void waitForTurnToComplete(){
         stateR = getRightEngineState();
         
     } while(stateL && stateR);
-
     
+}
+void checkIfCloseToWall(){
+    float distanceLeft;
+    float distanceRight;
+    stopEngines();
+    Sleep(1000);
+    turnLeft(turn_speed,30);
+    waitForCommandToFinish();
+    distanceLeft = getDistanceSensorValue();
+    Sleep(1000);
+    turnRight(turn_speed,60);
+    waitForCommandToFinish();
+    distanceRight = getDistanceSensorValue();
+    Sleep(1000);
+    turnLeft(turn_speed,30);
+    waitForTurnToComplete();
+    Sleep(1000);
+
+    if(distanceLeft <= OBJECT_TO_CLOSE && distanceRight <= OBJECT_TO_CLOSE){
+        turnNumberOfDegsCorrected(180);
+        runForever();
+    }
+    else if(distanceLeft <= OBJECT_TO_CLOSE){
+        turnNumberOfDegsCorrected(-30);
+        runForever();
+
+    }
+    else if(distanceRight <= OBJECT_TO_CLOSE){
+        turnNumberOfDegsCorrected(30);
+        runForever();
+    }else{
+        runForever(regular_speed);
+    }
+       
+}
+int shouldTurn(){
+    return 0;
 }
 
 

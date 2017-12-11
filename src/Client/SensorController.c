@@ -77,6 +77,7 @@ int recognizeObject(){
 
 
 //# GYRO SENSOR -------------------------------------
+
 int getGyroDegrees(){
   int val;
   uint8_t sn_gyro;
@@ -91,7 +92,9 @@ int getGyroDegrees(){
   return val;
 }
 
+
 void calibrateGyro(){
+
   uint8_t sn_gyro;
   set_sensor_mode( sn_gyro, "GYRO-RATE" );
   set_sensor_mode( sn_gyro, "GYRO-ANG" );
@@ -110,8 +113,8 @@ float getDistanceSensorValue(){
     if ( !get_sensor_value0( sn_sonar, &val )) {
         val = -1;
       }
-    printf( "\r(%f) \n", val);
-    fflush( stdout );
+    //printf( "\r(%f) \n", val);
+    //fflush( stdout );
 
   }
   return val;
@@ -119,16 +122,18 @@ float getDistanceSensorValue(){
 }
 
 // COMPASS SENSOR ----------------------------------
-int getCompassDegrees(){
-  int val;
+float getCompassDegrees(){
+  float val;
   uint8_t sn_compass;
-  if (ev3_search_sensor(NXT_ANALOG, &sn_compass, 0)){
-    set_sensor_mode( sn_compass, "COMPASS" );
+  if (ev3_search_sensor(HT_NXT_COMPASS, &sn_compass, 0)){
+    set_sensor_mode( &sn_compass, "COMPASS" );
     if (!get_sensor_value0( sn_compass, &val )){
       val = 0;
     }
-    printf("\r(%d) \n", val);
-    fflush( stdout );
+
+    //printf("\r(%f) \n", val);
+    //fflush( stdout );
+
   }
 
   return val;
