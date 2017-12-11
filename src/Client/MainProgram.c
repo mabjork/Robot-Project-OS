@@ -71,7 +71,7 @@ void startDiscovery(){
     turn_speed = 0.3 * max_speed;
     turnLeft(turn_speed,90);
     waitForCommandToFinish();
-    //runForever(regular_speed);
+    runForever(regular_speed);
     time_since_last_surroundings_check = (unsigned)time(NULL);
     time_since_last_wall_closenes_check = (unsigned)time(NULL);
     gettimeofday(&tval_before, NULL);
@@ -93,12 +93,7 @@ void startDiscovery(){
             evaluatePosition();
             gettimeofday(&tval_before, NULL);
         }
-        /*
-        if(time(0) - time_since_last_surroundings_check > TIME_TO_CHECK_SURROUNDINGS){
-            checkSouroundings();
-            time_since_last_surroundings_check = time(0);
-        }
-        */
+        
         else{
             if(time(0) - time_since_last_wall_closenes_check > TIME_TO_CHECK_WALL_CLOSENES){
             //checkIfCloseToWall();
@@ -134,34 +129,37 @@ void measureAndUpdateTraveledDistance(int heading){
 }
 
 
+void setMapPointValue(){
+    
+}
+void seeWhatOpstacleIs(){
+
+}
+
+
 void evaluatePosition(){
     stopEngines();
     checkSouroundings();
     int direction = evaluateSurroundings();
-}
-void turnToMatchDegree(int degree){
+
+    if(direction == FRONT){
+        runForever();
+    }else if(direction == BACK){
+        turnNumberOfDegsCorrected(180);
+        runForever();
+    }else if(direction == LEFT){
+        turnNumberOfDegsCorrected(90);
+        runForever();
+    }else if(direction == RIGHT){
+        turnNumberOfDegsCorrected(-90);
+        runForever();
+    }
 
 }
-void checkIfCloseToWall(){
-    stopEngines();
-    Sleep(1000);
-    turnLeft(turn_speed,45);
-    waitForCommandToFinish();
-    Sleep(1000);
-    turnRight(turn_speed,45);
-    waitForCommandToFinish();
-    Sleep(500);
-    turnRight(turn_speed,45);
-    waitForCommandToFinish();
-    Sleep(1000);
-    turnLeft(turn_speed,45);
-    waitForTurnToComplete();
-    Sleep(1000);
-    runForever(regular_speed);   
+void turnToMatchDegree(int degree){
+    turnToDeg(degree);
 }
-int shouldTurn(){
-    return 0;
-}
+
 void checkSouroundings(){
     stopEngines();
     Sleep(1000);
@@ -218,51 +216,7 @@ void backAwayAndTurn(){
 int readCommand(){
 
 }
-/*
-int waitForCommandToFinish(){
-    int stateL;
-    int stateR;
-    do {
-        stateL = getLeftEngineState();
-        stateR = getRightEngineState();
-        float distance = getDistanceSensorValue();
-        printf("Distance sensor value: %f\n", distance);
-        if(distance < OBJECT_TO_CLOSE){
-            printf("To close");
-            //turnLeftAndContinue(20);
-            stopEngines();
-            return INTERUPTED;
-        }
-    } while(stateR == STOPPED && stateL == STOPPED);
 
-    return FINISHED;
-}
-*/
-/*
-void initMap(){
-    for(int i = 0; i<MAP_HEIGHT;i++){
-        for(int j = 0;j<MAP_WIDTH;j++){
-            surroundins_map[i][j] = " ";
-        }
-    }
-    for(int i = MAP_HEIGHT/2-1;i<  MAP_HEIGHT/2+2; i++){
-        for(int j =  MAP_WIDTH/2-1; j < MAP_WIDTH/2+2; j++){
-            surroundins_map[i][j] = "R";
-        }
-    }
-}
-*/
-/*
-void updateMap(){
-    float distance = getDistanceSensorValue();
-    float driven_distance;
-    for(int i = MAP_HEIGHT/2-1;i<  MAP_HEIGHT/2+2; i++){
-        for(int j =  MAP_WIDTH/2-1; j < MAP_WIDTH/2+2; j++){
-            surroundins_map[i][j] = " ";
-        }
-    }
-}
-*/
 void waitForTurnToComplete(){
     int stateL;
     int stateR;
@@ -271,9 +225,44 @@ void waitForTurnToComplete(){
         stateR = getRightEngineState();
         
     } while(stateL && stateR);
-
-
     
+}
+void checkIfCloseToWall(){
+    float distanceLeft;
+    float distanceRight;
+    stopEngines();
+    Sleep(1000);
+    turnLeft(turn_speed,30);
+    waitForCommandToFinish();
+    distanceLeft = getDistanceSensorValue();
+    Sleep(1000);
+    turnRight(turn_speed,60);
+    waitForCommandToFinish();
+    distanceRight = getDistanceSensorValue();
+    Sleep(1000);
+    turnLeft(turn_speed,30);
+    waitForTurnToComplete();
+    Sleep(1000);
+
+    if(distanceLeft <= OBJECT_TO_CLOSE && distanceRight <= OBJECT_TO_CLOSE){
+        turnNumberOfDegsCorrected(180);
+        runForever();
+    }
+    else if(distanceLeft <= OBJECT_TO_CLOSE){
+        turnNumberOfDegsCorrected(-30);
+        runForever();
+
+    }
+    else if(distanceRight <= OBJECT_TO_CLOSE){
+        turnNumberOfDegsCorrected(30);
+        runForever();
+    }else{
+        runForever(regular_speed);
+    }
+       
+}
+int shouldTurn(){
+    return 0;
 }
 
 

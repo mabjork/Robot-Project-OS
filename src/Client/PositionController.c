@@ -9,7 +9,12 @@
 #define CalcSquareY (int)((POS_Y)/SQUARE_HEIGHT)
 #define SQUARE_WIDTH 5
 #define SQUARE_HEIGHT 5
-
+enum{
+    UP,
+    LEFT,
+    DOWN,
+    RIGHT
+};
 
 int POS_X;
 int POS_Y;
@@ -19,6 +24,10 @@ int current_square_y;
 
 int INITIAL_HEADING;
 int HEADING;
+
+
+
+
 
 
 struct Array{
@@ -39,6 +48,9 @@ typedef struct Array;
 
 struct Map map;
 
+int getInitialHeading(){
+    return INITIAL_HEADING;
+}
 void setCurrentHeading(int heading){
     HEADING = heading;
 }
@@ -49,8 +61,9 @@ void initPositionController(int initialHeading){
 
     INITIAL_HEADING = initialHeading;
     initMap(&map,1);
+    updateMap(&map,0,0,'S');
 }
-/*
+
 void updateRobotPosition(int distance){
     int dx = distance * sin(HEADING-INITIAL_HEADING);
     int dy = distance * cos(HEADING-INITIAL_HEADING);
@@ -60,11 +73,15 @@ void updateRobotPosition(int distance){
     current_square_y = CalcSquareY;
     
 }
-*/
-void updateMap(struct Map *map,int x,int y,char value){
+
+int updateMap(struct Map *map,int x,int y,char value){
     struct Array *rows = map->rows;
     struct Array row = *(rows + y);
+    if(row.array[x] != 'O'){
+        return 0;
+    }
     row.array[x] = value;
+    return 1;
 }
 
 void initArray(struct Array *a, size_t initialSize) {
@@ -224,7 +241,35 @@ void addColLower(struct Map *m){
     
     
 }
+void findUndiscoveredPoint(int*x,int*y){
+    struct Array * rows = map.rows;
+    struct Array row;
+    for(int i = 0; i<map.height;i++){
+        row = rows[i];
+        for(int j = 0 ; j< row.size;j++){
+            if (row.array[j] == 'O'){
+                x = j;
+                y = i;
+                return;
+            }
+        }
+    }
+}
+void updateClosedPositions(){
+    struct Array * rows = map.rows;
+    struct Array row;
+    for(int i = 0; i<map.height;i++){
+        row = rows[i];
+        for(int j = 0 ; j< row.size;j++){
+            
+        }
+    }
+}
 
+void getDistanceAndDirectionToPoint(){
+
+}
+/*
 int main(int argc, char const *argv[]) {
     struct Map map;
     initMap(&map , 1);
@@ -265,6 +310,7 @@ int main(int argc, char const *argv[]) {
     addColLower(&map);
     printMatrix(&map);
 }
+*/
 void printMatrix(struct Map *m){
     struct Array row;
     struct Array *rows = m-> rows;
@@ -272,7 +318,7 @@ void printMatrix(struct Map *m){
     
     for(int i = 0;i<m->height;i++){
         row = rows[i];
-        printf("Row size = %i\n",row.size);
+        
         for(int j = 0;j < m->width; j++){
 
             printf("%c",row.array[j]);
