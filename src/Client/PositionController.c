@@ -120,19 +120,61 @@ void moveElementsUp(struct Map *m){
 void addRowLower(struct Map *m){
     m->height += 1;
     struct Array row;
+    //printf("Matrix hight %i\n", m-> height);
+    //printf("Add lower width %i\n", m->width);
     initArray(&row,m->width);
+    //printf("Array width %i\n",row.size);
     struct Array *rows = m-> rows;
+    m->rows = (struct Array *)realloc(m->rows,m->height * sizeof(row));
+    struct Array row_before;
+    struct Array row_target;
     for (int i = m->height-1;i>0;i--){
-        *(rows + i) = *(rows + i - 1);   
+        //printf("This is the i %i\n",i);
+        //row_target = rows[i];
+        //printf("Target size %i\n",row_target.size);
+        row_before = rows[i-1];
+        printf("Before size %i\n",row_before.size);
+        rows[i] = rows[i-1];
+         
     }
-    *(rows) = row;
+    
+    printf("THis is the last row size : %i\n", rows[m->height-1].size);
+    rows[0] = row;
+    m->rows = rows;
+    printf("THis is the last row size : %i\n", rows[m->height-1].size);
+   
+}
+void addRowLower2(struct Map * m){
+    addRow(m);
+    struct Array * rows = m->rows;
+    struct Array row;
+    struct Array next_row;
+    for(int i = 0; i< m->height-1;i++){
+        row = rows[i];
+        next_row = rows[i+1];
+        for(int j = 0;j<row.size;j++){
+            next_row.array[j] = row.array[j];
+        }
+    }
+    row = rows[0];
+    for(int i = 0; i<row.size;i++){
+        row.array[i] = 'O';
+    }
 }
 void addRow(struct Map *m){
     m->height += 1;
     struct Array row;
     initArray(&row,m->width);
     m->rows = (struct Array*)realloc(m->rows,m->height * sizeof(row));
-    m->rows[m->height-1] = row;
+    //printf("HAHA row size %i\n", row.size);
+    //printf("Should be put at %i\n",m->height-1);
+    struct Array* rows;
+    rows = m->rows;
+    int last = m->height -1;
+    //memmove(&rows[last],&row,m->width);
+    rows[last] = row;
+
+    //printf("TestTESTtest %i\n", rows[last].size);
 }
 void addCol(struct Map *m){
     m->width += 1;
@@ -140,40 +182,44 @@ void addCol(struct Map *m){
     struct Array *rows = m-> rows;
     for (int i = 0;i<m->height;i++){
         row = *(rows + i);
-        printf("This row size %i\n",row.size);
+        //printf("This row size %i\n",row.size);
         row.size = m->width;
-        printf("This row size %i\n",row.size);
+        //printf("This row size %i\n",row.size);
         row.array = (char *)realloc(row.array,row.size * sizeof(char));
         row.array[row.size-1] = 'O';
         *(rows + i) = row;
         //printf("Last element %c\n",row.array[row.size-1]);
     }
-    printf("SIZE : %i\n",(*(rows)).size);
+    //printf("SIZE : %i\n",(*(rows)).size);
 }
 void addColLower(struct Map *m){
     m->width += 1;
     struct Array row;
     struct Array *rows = m-> rows;
     for (int i = 0;i<m->height;i++){
-
+        
         row = *(rows + i);
         row.size = m->width;
-        printf("THis is the width %i\n", m->width);
+        //printf("THis is the width %i\n", m->width);
         row.array = (char *)realloc(row.array,row.size * sizeof(char));
+
+        *(rows + i) = row;
     }
     for (int i = 0;i<m->height;i++){
-        printf("Second loop infinite\n");
+        //printf("Second loop infinite\n");
         row = *(rows + i);
-        printf("Lol  Row size : %i\n",row.size);
+        //printf("Lol  Row size : %i\n",row.size);
         
         for(int j = row.size; j>0;j--){
-            printf("J is %i\n",j);
+            //printf("J is %i\n",j);
             
-            printf("Third loop infinite");
+            //printf("Third loop infinite");
             row.array[j] = row.array[j-1];
         }
         
         row.array[0] = 'O';
+
+        *(rows + i) = row;
     }
     
     
@@ -186,16 +232,37 @@ int main(int argc, char const *argv[]) {
     addCol(&map);
     printMatrix(&map);
     addRow(&map);
+    struct Array * rows = map.rows;
+    struct Array row = rows[map.height-1];
+    printf("Last row size : %i\n",row.size);
+    addRow(&map);
+    rows = map.rows;
+    row = rows[map.height-1];
+    printf("Last row size : %i\n",row.size);
+    addRow(&map);
+    rows = map.rows;
+    row = rows[map.height-1];
+    printf("Last row size : %i\n",row.size);
+    addRow(&map);
+    rows = map.rows;
+    row = rows[map.height-1];
+    printf("Last row size : %i\n",row.size);
     printMatrix(&map);
     addColLower(&map);
+    addColLower(&map);
     printMatrix(&map);
-    addRowLower(&map);
+    addRowLower2(&map);
+    rows = map.rows;
+    row = rows[map.height-1];
+    printf("Last row size : %i\n",row.size);
     printMatrix(&map);
     updateMap(&map,0,0,'X');
     printMatrix(&map);
     updateMap(&map,1,1,'H');
     printMatrix(&map);
     addRow(&map);
+    addColLower(&map);
+    addColLower(&map);
     printMatrix(&map);
 }
 void printMatrix(struct Map *m){
@@ -204,14 +271,15 @@ void printMatrix(struct Map *m){
     printf("Map height %i\n",m->height);
     
     for(int i = 0;i<m->height;i++){
-        row = *(rows + i);
-        //printf("Row size = %i\n",row.size);
+        row = rows[i];
+        printf("Row size = %i\n",row.size);
         for(int j = 0;j < m->width; j++){
 
             printf("%c",row.array[j]);
         }
         printf("\n");
     }
+    printf("\n");
     
 }
 
