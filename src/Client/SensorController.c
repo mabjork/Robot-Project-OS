@@ -81,7 +81,6 @@ int getGyroDegrees(){
   int val;
   uint8_t sn_gyro;
   if ( ev3_search_sensor( LEGO_EV3_GYRO, &sn_gyro, 0 )) {
-    set_sensor_mode( sn_gyro, "GYRO-ANG" );
     if ( !get_sensor_value0( sn_gyro, &val )) {
       val = 0;
     }
@@ -92,9 +91,11 @@ int getGyroDegrees(){
   return val;
 }
 
-void resetGyro(){
+void calibrateGyro(){
   uint8_t sn_gyro;
   set_sensor_mode( sn_gyro, "GYRO-RATE" );
+  set_sensor_mode( sn_gyro, "GYRO-ANG" );
+  Sleep(100);
 
 }
 
