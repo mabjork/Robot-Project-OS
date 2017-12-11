@@ -41,7 +41,7 @@ int getColor(){
       if ( !get_sensor_value( 0, sn_color, &val ) || ( val < 0 ) || ( val >= COLOR_COUNT )) {
         val = 0;
       }
-      printf( "\r(%f) \n", val);
+      printf( "\r(%d) \n", val);
       fflush( stdout );
   } else {
       printf( "COLOR sensor is NOT found\n" );
@@ -77,24 +77,28 @@ int recognizeObject(){
 
 
 //# GYRO SENSOR -------------------------------------
-float getGyroDegress(){
-  float val;
+
+int getGyroDegrees(){
+  int val;
   uint8_t sn_gyro;
   if ( ev3_search_sensor( LEGO_EV3_GYRO, &sn_gyro, 0 )) {
-    set_sensor_mode( sn_gyro, "GYRO-ANG" );
-    if ( !get_sensor_value0(sn_gyro, &val )) {
-				val = 0;
-		}
-    //printf( "\r(%f) \n", val);
-    //fflush( stdout );
+    if ( !get_sensor_value0( sn_gyro, &val )) {
+      val = 0;
+    }
+    printf( "\r(%d) \n", val);
+    fflush( stdout );
 
   }
   return val;
 }
 
-void resetGyro(){
+
+void calibrateGyro(){
+
   uint8_t sn_gyro;
   set_sensor_mode( sn_gyro, "GYRO-RATE" );
+  set_sensor_mode( sn_gyro, "GYRO-ANG" );
+  Sleep(100);
 
 }
 
@@ -126,8 +130,10 @@ float getCompassDegrees(){
     if (!get_sensor_value0( sn_compass, &val )){
       val = 0;
     }
+
     //printf("\r(%f) \n", val);
     //fflush( stdout );
+
   }
 
   return val;
