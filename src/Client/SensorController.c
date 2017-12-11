@@ -41,7 +41,7 @@ int getColor(){
       if ( !get_sensor_value( 0, sn_color, &val ) || ( val < 0 ) || ( val >= COLOR_COUNT )) {
         val = 0;
       }
-      printf( "\r(%f) \n", val);
+      printf( "\r(%d) \n", val);
       fflush( stdout );
   } else {
       printf( "COLOR sensor is NOT found\n" );
@@ -62,12 +62,12 @@ int recognizeObject(){
 
   //Red color detected, recognized as moveable obj
   else if ( obj_color == 5){
-    printf( "Red detected. This is a moveable object.")
+    printf( "Red detected. This is a moveable object.");
     return 2;
   }
 
   else if( obj_color == 2){
-    print("Blue detected. This is a moveable object.")
+    printf("Blue detected. This is a moveable object.");
   }
   
   //Recognizes nothing. This may be changed
@@ -82,7 +82,10 @@ int getGyroDegress(){
   uint8_t sn_gyro;
   if ( ev3_search_sensor( LEGO_EV3_GYRO, &sn_gyro, 0 )) {
     set_sensor_mode( sn_gyro, "GYRO-ANG" );
-    printf( "\r(%f) \n", val);
+    if ( !get_sensor_value0( sn_gyro, &val )) {
+      val = 0;
+    }
+    printf( "\r(%d) \n", val);
     fflush( stdout );
 
   }
@@ -90,7 +93,7 @@ int getGyroDegress(){
 }
 
 void resetGyro(){
-  unistd sn_gyro;
+  uint8_t sn_gyro;
   set_sensor_mode( sn_gyro, "GYRO-RATE" );
 
 }
@@ -123,7 +126,7 @@ int getCompassDegrees(){
     if (!get_sensor_value0( sn_compass, &val )){
       val = 0;
     }
-    printf("\r(%f) \n", val);
+    printf("\r(%d) \n", val);
     fflush( stdout );
   }
 
