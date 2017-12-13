@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "enginecontroller.h": "c"
+        "enginecontroller.h": "c",
+        "unistd.h": "c"
     }
 }

@@ -1,26 +1,39 @@
-CC = gcc
+CC=gcc
+CFLAGS= -I /ev3dev-c/source/ev3 -O2 -std=gnu99 -w -Wall -Wno-comment
+default: MainProgram StopProgram
 
-CFLAGS  = -g -Wall
+MainProgram: MainProgram.o SensorController.o EngineController.o PositionController.o
 
-default: MainProgram
+		gcc MainProgram.o EngineController.o SensorController.o PositionController.o -Wall -w -lm -lev3dev-c -o MainProgram
 
-MainProgram: MainProgram.o EngineController.o BluetoothController.o
-    $(CC) $(CFLAGS) -o MainProgram MainProgram.o EngineController.o BluetoothController.o
+MainProgram.o:
+
+		$(CC) $(CFLAGS) -c src/Client/MainProgram.c -o MainProgram.o
+
+EngineController.o: SensorController.o
+
+		$(CC) $(CFLAGS) -c src/Client/EngineController.c -o EngineController.o
+
+SensorController.o:
+
+		$(CC) $(CFLAGS) -c src/Client/SensorController.c -o SensorController.o
+
+PositionController.o:
+
+		$(CC) $(CFLAGS) -c src/Client/PositionController.c -o PositionController.o
+
+StopProgram: EngineController.o SensorController.o
+		$(CC) $(CFLAGS) -c src/Client/StopEngines.c -o StopProgram.o
+		gcc StopProgram.o EngineController.o SensorController.o -Wall -w -lm -lev3dev-c -o StopProgram
+
+PositionTest:
+		gcc -w -o PositionTest src/Client/PositionController.c -lm
 
 
-MainProgram.o: MainProgram.c EngineController.h BluetoothController.h
-    $(CC) $(CFLAGS) -c MainProgram.c
-
-EngineController.o: EngineController.c EngineController.h
-    $(CC) $(CFLAGS) -c EngineController.c
-
-BluetoothController.o: BluetoothController.c BluetoothController.h
-    $(CC) $(CFLAGS) -c BluetoothController.c
-
-TouchSensorController.o: TouchSensorController.c TouchSensorController.h
-    $(CC) $(CFLAGS) -c TouchSensorController.c TouchSensorController.h
+run:
+		./MainProgram
 
 clean:
-	$(RM) count *.o *~
-
-
+	rm -f MainProgram
+	rm -f StopProgram
+	rm -f *.o

@@ -1,22 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <stdarg.h>
 #include "ev3.h"
 #include "ev3_port.h"
 #include "ev3_tacho.h"
-#include "./headers/EngineController.h"
-#include "coroutine.h"
+#include "ev3_sensor.h"
+#include "headers/EngineController.h"
+#include "headers/SensorController.h"
 
-// WIN32 /////////////////////////////////////////
-#ifdef __WIN32__
-#include <windows.h>
-// UNIX //////////////////////////////////////////
-#else
+#include <math.h>
 #include <unistd.h>
-#define Sleep( msec ) usleep(( msec ) * 1000 )
-#endif
+#include <time.h>
 
+#define Sleep( msec ) usleep(( msec ) * 1000 )
 #define L_MOTOR_PORT      OUTPUT_C
 #define L_MOTOR_EXT_PORT  EXT_PORT__NONE_
 #define R_MOTOR_PORT      OUTPUT_B
@@ -24,96 +20,77 @@
 #define IR_CHANNEL        0
 #define SPEED_LINEAR      75  /* Motor speed for linear motion, in percents */
 #define SPEED_CIRCULAR    50  /* ... for circular motion */
-
 #define DEGREE_TO_COUNT( d )  (( d ) * 260 / 90 )
-int app_alive;
+#define DEGREE_ERROR_MARGIN 1
+#define WHEEL_DIAMETER 5.6 // In centimetres
+
 int max_speed;  /* Motor maximal speed */
-int mode;  /* Driving mode */
 int moving;   /* Current moving */
-int command;  /* Command for the 'drive' coroutine */
-int angle;    /* Angle of rotation */
-uint8_t ir, touch;  /* Sequence numbers of sensors */
+
 enum { L, R };
-uint8_t motor[ 3 ] = { DESC_LIMIT, DESC_LIMIT, DESC_LIMIT };  /* Sequence numbers of motors */
+uint8_t motor[3]; /* Sequence numbers of motors */
+uint8_t arm;
+
+
+time_t start_drive_time;
+time_t stop_drive_time;
+
+
 
 enum {
-    MOVE_NONE,
-    MOVE_FORWARD,
-    MOVE_BACKWARD,
-    TURN_LEFT,
-    TURN_RIGHT,
-    TURN_ANGLE,
-    STEP_BACKWARD,
+    RUNNING,
+    STOPPED
 };
 
 
-
-
-
-int * discoverEngines(){
-
-}
-
-bool initEngines(){
-    int counter = 0;
-    while ( ev3_tacho_init() < 1 ) {
-        Sleep( 1000 );
-        counter++;
-        if(counter==10)return false;
-    }
-    return true;
-}
-
-void runEngines(int * engines, int time){
-    int i;
+void discoverEngines(){
     uint8_t sn;
-    FLAGS_T state;
     char s[ 256 ];
-
-    //if ( ev3_init() == -1 ) return ( 1 );
-
-    //
-
-    for ( i = 0; i < DESC_LIMIT; i++ ) {
+    int i;
+    for (i = 0; i < DESC_LIMIT; i++ ) {
         if ( ev3_tacho[ i ].type_inx != TACHO_TYPE__NONE_ ) {
             printf( "  type = %s\n", ev3_tacho_type( ev3_tacho[ i ].type_inx ));
-            printf( "  port = %s\n", ev3_tacho_port_name( i, s ));
+			printf( "  port = %s\n", ev3_tacho_port_name( i, s ));
+			printf("  port = %d %d\n", ev3_tacho_desc_port(i), ev3_tacho_desc_extport(i));
         }
     }
-    if ( ev3_search_tacho( LEGO_EV3_M_MOTOR, &sn, 0 )) {
-        int max_speed;
-        printf( "LEGO_EV3_M_MOTOR is found, run for 5 sec...\n" );
-        get_tacho_max_speed( sn, &max_speed );
-        printf("  max_speed = %d\n", max_speed );
-        set_tacho_stop_action_inx( sn, TACHO_COAST );
-        set_tacho_speed_sp( sn, max_speed * 2 / 3 );
-        set_tacho_time_sp( sn, 5000 );
-        set_tacho_ramp_up_sp( sn, 2000 );
-        set_tacho_ramp_down_sp( sn, 2000 );
-        set_tacho_command_inx( sn, TACHO_RUN_TIMED );
-        /* Wait tacho stop */
-        Sleep( 100 );
-        do {
-            get_tacho_state_flags( sn, &state );
-        } while ( state );
-        printf( "run to relative position...\n" );
-        set_tacho_speed_sp( sn, max_speed / 2 );
-        set_tacho_ramp_up_sp( sn, 0 );
-        set_tacho_ramp_down_sp( sn, 0 );
-        set_tacho_position_sp( sn, 90 );
-        for ( i = 0; i < 8; i++ ) {
-            set_tacho_command_inx( sn, TACHO_RUN_TO_REL_POS );
-            Sleep( 500 );
+    int port=65;
+    int counter = 0;
+	for (port=65; port<69; port++){
+	    if ( ev3_search_tacho_plugged_in(port,0, &sn, 0 )) {
+            int speed;
+            printf("LEGO engine found\n");
+            printf("Counter %i\n",counter);
+            printf("Sequence number %i\n",sn);
+            get_tacho_max_speed( sn, &speed );
+            printf("Max speed: %i\n",speed);
+            motor[counter] = sn;
+            counter++;
+            max_speed = speed;
+	
+	    } else {
+		    printf( "LEGO_EV3_M_MOTOR 1 is NOT found\n" );
         }
-    } else {
-        printf( "LEGO_EV3_M_MOTOR is NOT found\n" );
+        printf("Port: %i\n",port);
     }
-    ev3_uninit();
-    printf( "*** ( EV3 ) Bye! ***\n" );
-    return ( 0 );
+    arm = motor[3];
+    
+
+    printf("%i\n",motor[L]);
+    printf("%i\n",motor[R]);
+    printf("lols\n");
+    return;
 }
 
-bool stopEngines(){
+int initEngines(){
+    while ( ev3_tacho_init() < 1 ) Sleep( 1000 );
+    return 0;
+}
+
+
+int stopEngines(){
+    moving = STOPPED;
+    stop_drive_time = time(0);
     multi_set_tacho_command_inx( motor, TACHO_STOP );
 }
 int isRunning( void )
@@ -126,227 +103,161 @@ int isRunning( void )
     return ( 0 );
 }
 
-void setMode( int value )
-{
-    if ( value == MODE_AUTO ) {
-        /* IR measuring of distance */
-        set_sensor_mode_inx( ir, LEGO_EV3_IR_IR_PROX );
-        mode = MODE_AUTO;
-    } else {
-        /* IR remote control */
-        set_sensor_mode_inx( ir, LEGO_EV3_IR_IR_REMOTE );
-        mode = MODE_REMOTE;
-    }
-}
 
-
-void runForever( int l_speed, int r_speed )
+void runForever( int speed)
 {
-    set_tacho_speed_sp( motor[ L ], l_speed );
-    set_tacho_speed_sp( motor[ R ], r_speed );
+    set_tacho_speed_sp( motor[ L ], speed );
+    set_tacho_speed_sp( motor[ R ], speed );
     multi_set_tacho_command_inx( motor, TACHO_RUN_FOREVER );
+    start_drive_time = time(0);
+    moving = RUNNING;
 }
-void runToRelPos( int l_speed, int l_pos, int r_speed, int r_pos )
-{
-    set_tacho_speed_sp( motor[ L ], l_speed );
-    set_tacho_speed_sp( motor[ R ], r_speed );
-    set_tacho_position_sp( motor[ L ], l_pos );
-    set_tacho_position_sp( motor[ R ], r_pos );
+void runToRelPos( int speed,int x, int y  , int currX,int currY)
+{   int newX = currX - x;
+    int newY = currY - y;
+    int turnDeg = atan (newY/newX);
+    int turn_speed = max_speed * 0.3;
+    if(x<currX){
+        turnLeft(turn_speed,turnDeg);
+    }
+    else{
+        turnRight(turn_speed,turnDeg);
+    }
+    int dist = sqrt(pow(newX,2) + pow(newY,2));
+    printf("Discance %i\n",dist);
+    set_tacho_speed_sp( motor[ L ], speed );
+    set_tacho_speed_sp( motor[ R ], speed );
+    set_tacho_position_sp( motor[ L ], dist );
+    set_tacho_position_sp( motor[ R ], dist );
     multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+    start_drive_time = time(0);
+    moving = RUNNING;
 }
-void runTimed( int l_speed, int r_speed, int ms )
+void runTimed( int speed, int ms )
 {
-    set_tacho_speed_sp( motor[ L ], l_speed );
-    set_tacho_speed_sp( motor[ R ], r_speed );
+    printf("Left engine %i\n",motor[L]);
+    printf("Right engine %i\n",motor[R]);
+    printf("Speed %i\n",speed);
+    set_tacho_speed_sp( motor[ L ], speed );
+    set_tacho_speed_sp( motor[ R ], speed );
     multi_set_tacho_time_sp( motor, ms );
     multi_set_tacho_command_inx( motor, TACHO_RUN_TIMED );
+    printf("Should now be running\n");
+    start_drive_time = time(0);
+    moving = STOPPED;
 }
 
-CORO_CONTEXT( handle_touch );
-CORO_CONTEXT( handle_brick_control );
-CORO_CONTEXT( handle_ir_control );
-CORO_CONTEXT( handle_ir_proximity );
-CORO_CONTEXT( drive );
+void turnRight(int speed,int degrees){
+    int deg1 = DEGREE_TO_COUNT(degrees);
+    int deg2 = DEGREE_TO_COUNT(-degrees);
+    set_tacho_speed_sp( motor[ L ], speed );
+    set_tacho_speed_sp( motor[ R ], -speed );
+    set_tacho_position_sp( motor[ L ], deg1 );
+    set_tacho_position_sp( motor[ R ], deg2 );
+    multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+}
 
+void turnLeft(int speed,int degrees){
+    int deg1 = DEGREE_TO_COUNT(degrees);
+    int deg2 = DEGREE_TO_COUNT(-degrees);
+    set_tacho_speed_sp( motor[ L ], -speed );
+    set_tacho_speed_sp( motor[ R ], speed );
+    set_tacho_position_sp( motor[ L ], deg2 );
+    set_tacho_position_sp( motor[ R ], deg1 );
+    multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+}
+int getMaxSpeed(){
+    return max_speed;
+}
 
-/* Coroutine of the TOUCH sensor handling */
-CORO_DEFINE( handle_touch ){
-        CORO_LOCAL int val;
-        CORO_BEGIN();
-        if ( touch == DESC_LIMIT ) CORO_QUIT();
-        for ( ; ; ){
-            /* Waiting the button is pressed */
-            CORO_WAIT(get_sensor_value(0, touch, &val) && (val));
-            /* Stop the vehicle */
-            command = MOVE_NONE;
-            /* Switch mode */
-            _set_mode((mode == MODE_REMOTE) ? MODE_AUTO : MODE_REMOTE);
-            /* Waiting the button is released */
-            CORO_WAIT(get_sensor_value(0, touch, &val) && (!val));
-        }
-        CORO_END();
+void waitForCommandToFinish(){
+    FLAGS_T stateL;
+    FLAGS_T stateR;
+    do {
+        get_tacho_state_flags( motor[L], &stateL );
+        get_tacho_state_flags( motor[R], &stateR );
+        
+    } while ( stateR && stateL);
+    
 }
 
 
-/* Coroutine of the EV3 brick keys handling */
-CORO_DEFINE( handle_brick_control )
-        {
-                CORO_LOCAL uint8_t keys, pressed = EV3_KEY__NONE_;
-        CORO_BEGIN();
-        for ( ; ; ) {
-            /* Waiting any key is pressed or released */
-            CORO_WAIT( ev3_read_keys( &keys ) && ( keys != pressed ));
-            pressed = keys;
-            if ( pressed & EV3_KEY_BACK ) {
-                /* Stop the vehicle */
-                command = MOVE_NONE;
-                /* Quit */
-                app_alive = 0;
-            } else if ( pressed & EV3_KEY_UP ) {
-                /* Stop the vehicle */
-                command = MOVE_NONE;
-                /* Switch mode */
-                _set_mode(( mode == MODE_REMOTE ) ? MODE_AUTO : MODE_REMOTE );
-            }
-            CORO_YIELD();
-        }
-        CORO_END();
-        }
+void raiseArm(){
+    int degree = DEGREE_TO_COUNT(90);
+    set_tacho_speed_sp( arm, max_speed * 0.2);
+    set_tacho_position_sp( arm,degree);
+    set_tacho_command_inx( arm, TACHO_RUN_TO_REL_POS );
+}
+void lowerArm(){
+    int degree = DEGREE_TO_COUNT(-90);
+    set_tacho_speed_sp( arm, max_speed * 0.2);
+    set_tacho_position_sp( arm,degree);
+    set_tacho_command_inx( arm, TACHO_RUN_TO_REL_POS );
+}
 
-/* Coroutine of IR remote control handling */
-CORO_DEFINE( handle_ir_control )
-        {
-                CORO_LOCAL int val;
-        CORO_BEGIN();
-        for ( ; ; ) {
-            /* Waiting IR remote control mode */
-            CORO_WAIT( mode == MODE_REMOTE );
-            val = IR_REMOTE__NONE_;
-            get_sensor_value( IR_CHANNEL, ir, &val );
-            switch ( val ) {
-                /* Forward */
-                case RED_UP_BLUE_UP:
-                    command = MOVE_FORWARD;
-                    break;
-                    /* Backward */
-                case RED_DOWN_BLUE_DOWN:
-                    command = MOVE_BACKWARD;
-                    break;
-                    /* Left */
-                case RED_UP:
-                case RED_UP_BLUE_DOWN:
-                case BLUE_DOWN:
-                    command = TURN_LEFT;
-                    break;
-                    /* Right */
-                case BLUE_UP:
-                case RED_DOWN_BLUE_UP:
-                case RED_DOWN:
-                    command = TURN_RIGHT;
-                    break;
-                    /* Stop */
-                case IR_REMOTE__NONE_:
-                case RED_UP_RED_DOWN:
-                case BLUE_UP_BLUE_DOWN:
-                case BEACON_MODE_ON:
-                    command = MOVE_NONE;
-                    break;
-            }
-            CORO_YIELD();
-        }
-        CORO
+int getLeftEngineState(){
+    FLAGS_T stateL;
 
-        _END();
-        }
-/* Coroutine of IR proximity handling (self-driving),
-   based on Franz Detro drive_test.cpp */
-CORO_DEFINE( handle_ir_proximity )
-        {
-                CORO_LOCAL int front, prox;
-        CORO_BEGIN();
-        for ( ; ; ) {
-            /* Waiting self-driving mode */
-            CORO_WAIT( mode == MODE_AUTO );
-            prox = 0;
-            get_sensor_value( 0, ir, &prox );
-            if ( prox == 0 ) {
-                /* Oops! Stop the vehicle */
-                command = MOVE_NONE;
-            } else if ( prox < 20 ) {  /* Need for detour... */
-                front = prox;
-                /* Look to the left */
-                angle = -30;
-                do {
-                    command = TURN_ANGLE;
-                    CORO_WAIT( command == MOVE_NONE );
-                    prox = 0;
-                    get_sensor_value( 0, ir, &prox );
-                    if ( prox < front ) {
-                        if ( angle < 0 ) {
-                            /* Still looking to the left - look to the right */
-                            angle = 60;
-                        } else {
-                            /* Step back */
-                            command = STEP_BACKWARD;
-                            CORO_WAIT( command == MOVE_NONE );
-                        }
-                    }
-                } while (( prox > 0 ) && ( prox < 40 ) && ( mode == MODE_AUTO ));
-            } else {
-                /* Track is clear - Go! */
-                command = MOVE_FORWARD;
-            }
-            CORO_YIELD();
-        }
-        CORO_END();
-        }
+    get_tacho_state_flags( motor[L], &stateL );
+
+    return stateL;
+}
+int getRightEngineState(){
+    FLAGS_T state;
+
+    get_tacho_state_flags( motor[L], &state );
+    printf("State: %i",state);
+    return state;
+}
+void turnToDeg(int speed,int target){
+    int current_deg = getCompassDegrees();
+    do{
+        
+        int diff = (target - current_deg) % 360;
+        turnNumberOfDegs(speed,diff);
+        waitForCommandToFinish();
+        current_deg = getCompassDegrees();
+    }while(abs(current_deg-target) < DEGREE_ERROR_MARGIN);    
+}
+void turnNumberOfDegs(int turn_speed, int degrees){
+    int deg1 = DEGREE_TO_COUNT(degrees);
+    int deg2 = DEGREE_TO_COUNT(-degrees);
+    set_tacho_speed_sp( motor[ L ], -turn_speed );
+    set_tacho_speed_sp( motor[ R ], turn_speed);
+    set_tacho_position_sp( motor[ L ], deg2 );
+    set_tacho_position_sp( motor[ R ], deg1 );
+    multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+}
+void turnNumberOfDegsCorrected(int speed,int degree){
+    int current_deg = getCompassDegrees();
+    int target = (current_deg - degree) % 360;
+    turnToDeg(speed,target);
+}
+void correctError(){
+
+}
+
+void getDistanceSinceLastCheck(int distance,int error){
+
+}
+double getWheelDiameter(){
+    return WHEEL_DIAMETER;
+}
 
 
-/* Coroutine of control the motors */
-CORO_DEFINE( drive )
-        {
-                CORO_LOCAL int speed_linear, speed_circular;
-        CORO_LOCAL int _wait_stopped;
-        CORO_BEGIN();
-        speed_linear = max_speed * SPEED_LINEAR / 100;
-        speed_circular = max_speed * SPEED_CIRCULAR / 100;
-        for ( ; ; ) {
-            /* Waiting new command */
-            CORO_WAIT( moving != command );
-            _wait_stopped = 0;
-            switch ( command ) {
-                case MOVE_NONE:
-                    _stop();
-                    _wait_stopped = 1;
-                    break;
-                case MOVE_FORWARD:
-                    _run_forever( -speed_linear, -speed_linear );
-                    break;
-                case MOVE_BACKWARD:
-                    _run_forever( speed_linear, speed_linear );
-                    break;
-                case TURN_LEFT:
-                    _run_forever( speed_circular, -speed_circular );
-                    break;
-                case TURN_RIGHT:
-                    _run_forever( -speed_circular, speed_circular );
-                    break;
-                case TURN_ANGLE:
-                    _run_to_rel_pos( speed_circular, DEGREE_TO_COUNT( -angle )
-                            , speed_circular, DEGREE_TO_COUNT( angle ));
-                    _wait_stopped = 1;
-                    break;
-                case STEP_BACKWARD:
-                    _run_timed( speed_linear, speed_linear, 1000 );
-                    _wait_stopped = 1;
-                    break;
-            }
-            moving = command;
-            if ( _wait_stopped ) {
-                /* Waiting the command is completed */
-                CORO_WAIT( !_is_running());
-                command = moving = MOVE_NONE;
-            }
-        }
-        CORO_END();
-        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
