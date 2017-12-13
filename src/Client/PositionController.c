@@ -4,11 +4,13 @@
 #include <stdarg.h>
 #include <time.h>
 #include <math.h>
+
 #define CalcHeading(deg) ((deg + HEADING) % 360)
 #define CalcSquareX (int)((POS_X)/SQUARE_WIDTH)
 #define CalcSquareY (int)((POS_Y)/SQUARE_HEIGHT)
 #define SQUARE_WIDTH 5
 #define SQUARE_HEIGHT 5
+
 enum{
     UP,
     LEFT,
@@ -16,19 +18,20 @@ enum{
     RIGHT
 };
 
-int POS_X;
-int POS_Y;
-
+double POS_X;
+double POS_Y;
 int current_square_x;
 int current_square_y;
-
 int INITIAL_HEADING;
 int HEADING;
+int START_SQUARE_X;
+int START_SQUARE_Y;
 
-
-
-
-
+struct PointQueue {
+    int ** queue;
+    size_t size;
+    size_t used;
+};
 
 struct Array{
     char * array;
@@ -45,13 +48,19 @@ struct Map{
 
 typedef struct Map;
 typedef struct Array;
+typedef struct PointQueue;
 
+struct Map neighbour_matrix;
 struct Map map;
+struct PointQueue point_queue;
+
+
 
 int getInitialHeading(){
     return INITIAL_HEADING;
 }
 void setCurrentHeading(int heading){
+    printf("Current heading is %i\n", heading);
     HEADING = heading;
 }
 void getCurrentHeading(){
@@ -60,28 +69,89 @@ void getCurrentHeading(){
 void initPositionController(int initialHeading){
 
     INITIAL_HEADING = initialHeading;
-    initMap(&map,1);
-    updateMap(&map,0,0,'S');
+    initMap(&map,3);
+    printMatrix(&map);
+    updateMap(1,1,'S');
+    initQueue(&point_queue,5);
 }
 
-void updateRobotPosition(int distance){
-    int dx = distance * sin(HEADING-INITIAL_HEADING);
-    int dy = distance * cos(HEADING-INITIAL_HEADING);
+void updateRobotPosition(double distance){
+    double dx = distance * sin(HEADING-INITIAL_HEADING);
+    double dy = distance * cos(HEADING-INITIAL_HEADING);
+    
     POS_X += dx;
     POS_Y += dy;
-    current_square_x = CalcSquareX;
-    current_square_y = CalcSquareY;
-    
+    int square_x = CalcSquareX;
+    int square_y = CalcSquareY;
+    if(square_x != current_square_x || square_y != current_square_y){
+        updateMap(current_square_x,current_square_y, 'D');
+    }
+    if(square_x != current_square_x){
+        
+        printf("Current square x is changed to %i\n", square_x);
+        current_square_x = square_x;
+        if(current_square_x < 0){
+            int diff = current_square_x - START_SQUARE_X;
+            for(int i = 0; i<diff;i++){
+                addColLower(&map);
+            }
+            START_SQUARE_X += diff;
+            printf("Start square x %i\n", START_SQUARE_X);
+        }else if (current_square_x > map.width){
+            addCol(&map);
+        }
+        
+    }
+    if(square_y != current_square_y){
+        
+        printf("Current square y is changed to %i\n", square_y);
+        current_square_y = square_y;
+        if(current_square_y < 0){
+            int diff = current_square_y - START_SQUARE_Y;
+            for(int i = 0; i<diff;i++){
+                addRowLower2(&map);
+            }
+            START_SQUARE_Y += diff;
+            printf("Start square y %i\n", START_SQUARE_Y);
+        }else if (current_square_y > map.height){
+            addRow(&map);
+        }
+    }
+    updateMap(current_square_x,current_square_y,'R');
+
 }
 
-int updateMap(struct Map *map,int x,int y,char value){
-    struct Array *rows = map->rows;
-    struct Array row = *(rows + y);
+void updateMap(int x,int y,char value){
+
+    if(x < 0 || y < 0 || map.width < x || map.height < y)return;
+
+    struct Array *rows = map.rows;
+    struct Array row = rows[y];
     if(row.array[x] != 'O'){
         return 0;
     }
     row.array[x] = value;
+    printMatrix(&map);
     return 1;
+}
+
+void initQueue(struct PointQueue * queue,size_t initialSize){
+    queue->queue = (int *)malloc(initialSize * sizeof(int));
+    queue->used = 0;
+    queue->size = initialSize;
+}
+void appentToQueue(struct PointQueue * queue, int* point){
+    if(queue->size == queue->used){
+        queue->size *= 2;
+        queue->queue = (int *)realloc(queue->queue,queue->size * sizeof(int));
+    }
+    queue->queue[queue->used++] = point;
+}
+void popFromQueue(struct PointQueue * queue, int * point){
+    if(queue->used>0){
+        point = queue->queue[queue->used-1];
+        queue->used--;
+    }
 }
 
 void initArray(struct Array *a, size_t initialSize) {
@@ -90,7 +160,7 @@ void initArray(struct Array *a, size_t initialSize) {
   a->size = initialSize;
   
   for(int i = 0; i<initialSize;i++){
-        a->array[i] = 'O';
+        a->array[i] = 'U';
   }
 }
 
@@ -110,11 +180,15 @@ void freeArray(struct Array *a) {
 }
 void initMap(struct Map *m,size_t initialHeight){
     m->rows = (struct Array *)malloc(initialHeight * sizeof(struct Array));
-    m->height = 1;
-    m->width = 1;
-    struct Array row;
-    initArray(&row,m->width);
-    m->rows[0] = row;
+    m->height = initialHeight;
+    m->width = initialHeight;
+    for(int i = 0; i<initialHeight; i++){
+        struct Array row;
+        initArray(&row,m->width);
+        m->rows[i] = row;
+    }
+    
+    
 }
 void insertIntoMap(struct Map *m,int x,int y,char value){
     
@@ -175,7 +249,7 @@ void addRowLower2(struct Map * m){
     }
     row = rows[0];
     for(int i = 0; i<row.size;i++){
-        row.array[i] = 'O';
+        row.array[i] = 'U';
     }
 }
 void addRow(struct Map *m){
@@ -203,7 +277,7 @@ void addCol(struct Map *m){
         row.size = m->width;
         //printf("This row size %i\n",row.size);
         row.array = (char *)realloc(row.array,row.size * sizeof(char));
-        row.array[row.size-1] = 'O';
+        row.array[row.size-1] = 'U';
         *(rows + i) = row;
         //printf("Last element %c\n",row.array[row.size-1]);
     }
@@ -234,7 +308,7 @@ void addColLower(struct Map *m){
             row.array[j] = row.array[j-1];
         }
         
-        row.array[0] = 'O';
+        row.array[0] = 'U';
 
         *(rows + i) = row;
     }
@@ -247,16 +321,17 @@ void findUndiscoveredPoint(int*x,int*y){
     for(int i = 0; i<map.height;i++){
         row = rows[i];
         for(int j = 0 ; j< row.size;j++){
-            if (row.array[j] == 'O'){
+            if (row.array[j] == 'U'){
                 x = j;
                 y = i;
                 return;
             }
         }
     }
+    return;
 }
 void updateClosedPositions(){
-    struct Array * rows = map.rows;
+    struct Array * rows = neighbour_matrix.rows;
     struct Array row;
     for(int i = 0; i<map.height;i++){
         row = rows[i];
@@ -265,52 +340,40 @@ void updateClosedPositions(){
         }
     }
 }
+void findPoints(){
+    struct Array * rows = map.rows;
+    struct Array row;
+    for(int i = 0; i<map.height;i++){
+        row = rows[i];
+        for(int j = 0 ; j< row.size;j++){
+            if (row.array[j] == 'U'){
+                int point[2] = {j,i};
+                appentToQueue(&point_queue,&point);
+            }
+        }
+    }
+}
 
-void getDistanceAndDirectionToPoint(){
 
+void getDistanceAndDirectionToPoint(int * point,double *diff_x,double *diff_y,int * target_angle){
+    int target_x = point[0];
+    int target_y = point[1];
+    diff_x[0] = POS_X - target_x;
+    diff_y[0] = POS_Y - target_y;
+    target_angle[0] = HEADING - atan(diff_y[0]/diff_x[0]);
 }
 /*
 int main(int argc, char const *argv[]) {
-    struct Map map;
-    initMap(&map , 1);
-    printMatrix(&map);
-    addCol(&map);
-    printMatrix(&map);
-    addRow(&map);
-    struct Array * rows = map.rows;
-    struct Array row = rows[map.height-1];
-    printf("Last row size : %i\n",row.size);
-    addRow(&map);
-    rows = map.rows;
-    row = rows[map.height-1];
-    printf("Last row size : %i\n",row.size);
-    addRow(&map);
-    rows = map.rows;
-    row = rows[map.height-1];
-    printf("Last row size : %i\n",row.size);
-    addRow(&map);
-    rows = map.rows;
-    row = rows[map.height-1];
-    printf("Last row size : %i\n",row.size);
-    printMatrix(&map);
-    addColLower(&map);
-    addColLower(&map);
-    printMatrix(&map);
-    addRowLower2(&map);
-    rows = map.rows;
-    row = rows[map.height-1];
-    printf("Last row size : %i\n",row.size);
-    printMatrix(&map);
-    updateMap(&map,0,0,'X');
-    printMatrix(&map);
-    updateMap(&map,1,1,'H');
-    printMatrix(&map);
-    addRow(&map);
-    addColLower(&map);
-    addColLower(&map);
-    printMatrix(&map);
+    initPositionController(0);
+    setCurrentHeading(45);
+    updateRobotPosition(10);
+    updateRobotPosition(10);
+    updateRobotPosition(10);
+    updateRobotPosition(10);
 }
 */
+
+
 void printMatrix(struct Map *m){
     struct Array row;
     struct Array *rows = m-> rows;

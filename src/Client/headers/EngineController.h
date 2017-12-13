@@ -13,11 +13,13 @@ int getRightEngineState();
 void turnRight(int speed,int degrees);
 void turnLeft(int speed,int degrees);
 void runForever(int speed);
-void runToRelPos(int x, int y, int speed);
+void runToRelPos( int speed,int x, int y  , int currX,int currY);
 void discoverEngines();
 void waitForCommandToFinish();
-void turnToDeg(int target);
-void turnNumberOfDegsCorrected(int degree);
+void turnToDeg(int speed,int target);
+void turnNumberOfDegsCorrected(int turn_speed,int degree);
+
+double getWheelDiameter();
 
 
 
