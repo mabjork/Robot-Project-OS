@@ -8,8 +8,10 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
 
-#define SERV_ADDR "00:17:e9:f5:c9:dd" //"dc:53:60:ad:61:90"  /* Whatever the address of the server is */
-#define TEAM_ID 14                       /* Your team ID */
+#define SERV_ADDR  "9c:ad:97:b1:a7:d2" /*Halvor PC BT*/ /* 38:ca:da:e9:90:6c Halvor Iphone BT */ 
+/* ROBOT BT "00:17:e9:f5:c9:dd" */ /*OS SERVER "dc:53:60:ad:61:90"*/
+
+#define TEAM_ID 14
 
 #define MSG_ACK 0
 #define MSG_START 1
@@ -22,18 +24,6 @@
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
 void robot () {
-  char string[58];
-  char type;
-  int x1, x2, y1, y2;
-  printf ("I'm navigating...\n");
-
-  srand(time(NULL));
-  // Send POSITION messages
-  position();
-
-  mapdone();
-
-
   printf("I'm waiting for the stop message");
   while(1){
     //Wait for stop message
@@ -45,14 +35,11 @@ void robot () {
   }
 }
 
-
 void write_to_server (struct team *t, const char *buf, size_t size) {
     write (t->sock, buf, size);
 }
 
-
 int s;
-
 uint16_t msgId = 0;
 
 int read_from_server (int sock, char *buffer, size_t maxSize) {
@@ -70,7 +57,7 @@ int read_from_server (int sock, char *buffer, size_t maxSize) {
 }
 
 
-int main(int argc, char **argv) {
+int connect(int argc, char **argv) {
   struct sockaddr_rc addr = { 0 };
   int status;
 
@@ -96,7 +83,7 @@ int main(int argc, char **argv) {
 
 
     }
-    //call some function to navigate or similar here, like robot(); in robotclient.c
+    //call some function tocommunicate here, like robot(); in robotclient.c
     close (s);
 
     sleep (5);

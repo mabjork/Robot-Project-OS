@@ -8,7 +8,8 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
 
-#define SERV_ADDR   "dc:53:60:ad:61:90"     /* Whatever the address of the server is */
+#define SERV_ADDR   "9c:ad:97:b1:a7:d2" /*Halvor PC BT*/ /* 38:ca:da:e9:90:6c Halvor Iphone BT */ 
+/* ROBOT BT "00:17:e9:f5:c9:dd"*/ /*OS SERVER "dc:53:60:ad:61:90"*/
 #define TEAM_ID     14                       /* Your team ID */
 
 #define MSG_ACK      0
