@@ -4,7 +4,7 @@
 int getCurrentHeading();
 void setCurrentHeading(int heading);
 void initPositionController(int initialHeading);
-void updateRobotPosition(int distance);
+void updateRobotPosition(double distance);
 void updateMap(int x,int y,char value);
 
 #endif
