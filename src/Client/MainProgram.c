@@ -12,8 +12,6 @@
 #include "headers/PositionController.h"
 #include "ev3.h"
 #include <math.h>
-#include <bluetooth/bluetooth.h>
-#include <bluetooth/rfcomm.h>
 #include "headers/BluetoothController.h"
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
