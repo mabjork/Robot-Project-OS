@@ -12,6 +12,7 @@
 #include "headers/PositionController.h"
 #include "ev3.h"
 #include <math.h>
+#include "headers/BluetoothController.h"
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 #define OBJECT_TO_CLOSE 250
@@ -58,14 +59,14 @@ float distances_around_robot[4];
 
 struct timeval tval_before, tval_after, tval_result;
 
-
-
 int main(int argc, char const *argv[]) {
+    btcommunication();
     init();
     startDiscovery();
+    //stopmessage();
     return 0;
-
 }
+
 void init(){
     if ( ev3_init() == -1 ) return ( 1 );
     printf("Ev3 initiated\n");
@@ -121,7 +122,7 @@ void startDiscovery(){
             
             
             
-            
+    
             
         }
         //Sleep(1000);
