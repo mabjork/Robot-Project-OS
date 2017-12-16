@@ -2,9 +2,9 @@ CC=gcc
 CFLAGS= -I /ev3dev-c/source/ev3 -O2 -std=gnu99 -w -Wall -Wno-comment
 default: MainProgram StopProgram
 
-MainProgram: MainProgram.o SensorController.o EngineController.o PositionController.o
+MainProgram: MainProgram.o SensorController.o EngineController.o PositionController.o BluetoothController.o
 
-		gcc MainProgram.o EngineController.o SensorController.o PositionController.o -Wall -w -lm -lev3dev-c -o MainProgram
+		gcc MainProgram.o EngineController.o SensorController.o PositionController.o BluetoothController.o -Wall -w -lm -lev3dev-c -lm -lbluetooth -o MainProgram
 
 MainProgram.o:
 
@@ -21,6 +21,10 @@ SensorController.o:
 PositionController.o:
 
 		$(CC) $(CFLAGS) -c src/Client/PositionController.c -o PositionController.o
+
+BluetoothController.o:
+
+		$(CC) $(CFLAGS) -c src/Client/BluetoothController.c -o BluetoothController.o
 
 StopProgram: EngineController.o SensorController.o
 		$(CC) $(CFLAGS) -c src/Client/StopEngines.c -o StopProgram.o
