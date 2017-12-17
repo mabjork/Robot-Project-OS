@@ -10,6 +10,7 @@
 #include "headers/SensorController.h"
 #endif
 #include "headers/PositionController.h"
+#include "headers/ArmController.h"
 #include "ev3.h"
 #include <math.h>
 //#include "headers/BluetoothController.h"
@@ -65,7 +66,9 @@ struct timeval tval_before, tval_after, tval_result;
 int main(int argc, char const *argv[]) {
     //btcommunication();
     init();
-    startDiscovery();
+    speed = getMaxSpeed();
+    testingBallRelease(speed);
+    //startDiscovery();
     //stopmessage();
     return 0;
 }

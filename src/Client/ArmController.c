@@ -14,6 +14,9 @@
 #include <unistd.h>
 #include <time.h>
 
+#define Sleep( msec ) usleep(( msec ) * 1000 )
+
+
 int pos;
 int status;
 
@@ -27,6 +30,11 @@ enum {
     NOBALL
 }
 
+void initArm(){
+    pos = RAISED;
+    status = NOBALL;
+}
+
 void armLogic(){
     pos = RAISED;
     status = NOBALL;
@@ -35,7 +43,6 @@ void armLogic(){
     
 
     }
-
 }
 
 int checkIfMovable(){
@@ -46,8 +53,10 @@ int checkIfMovable(){
     else{ return 0; }
 }
 
-int checkIfMovableCloseEnough(){
+int checkIfCloseEnough(){
     int distance = getDistanceSensorValue();
+    int maxDistance = 100;
+    int minDistance = 0;
     if (distance <= maxDistance && distance >= minDistance){
         return 1;
     }
@@ -71,4 +80,31 @@ void armReleasingMovable(){
     status = NOBALL;
     pos = RAISED;
 
+}
+
+void testingBallRelease(int speed){
+    initArm();
+    int i;
+    while(1){
+        i += 1;
+        if (pos == RAISED && status == NOBALL){
+            printf("Arm raised and no ball.\n");
+            if (checkIfMovable && checkIfCloseEnough){
+                armCapturingMovable();
+                printf("Ball Captured!\n");
+                Sleep(1000);
+            }
+        }
+        else if (pos  == LOWERED && status == HASBALL){
+            runDistance(speed, 1000);
+            waitForCommandToFinish();
+            armReleasingMovable();
+            printf("Ball released!\n");
+            runDistance(speed, -1000);
+            waitForCommandToFinish();
+        }
+        Sleep(500);
+        printf("Iteration %i!\n", i)
+
+    }
 }
