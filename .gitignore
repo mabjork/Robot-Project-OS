@@ -52,3 +52,6 @@ Mkfile.old
 dkms.conf
 cmake-build-debug/
 PositionTest
+MainProgram
+StopProgram
+ev3dev-c/

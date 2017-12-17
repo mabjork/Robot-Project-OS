@@ -16,12 +16,11 @@
 #define L_MOTOR_EXT_PORT  EXT_PORT__NONE_
 #define R_MOTOR_PORT      OUTPUT_B
 #define R_MOTOR_EXT_PORT  EXT_PORT__NONE_
-#define IR_CHANNEL        0
 #define SPEED_LINEAR      75  /* Motor speed for linear motion, in percents */
 #define SPEED_CIRCULAR    50  /* ... for circular motion */
 #define DEGREE_TO_COUNT( d )  (( d ) * 260 / 90 )
 
-#define DEGREE_ERROR_MARGIN 1
+#define DEGREE_ERROR_MARGIN 2
 #define WHEEL_DIAMETER 5.6 // In centimetres
 
 
