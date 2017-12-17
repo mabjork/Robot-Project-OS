@@ -87,17 +87,21 @@ void armReleasingMovable(){
 void testingBallRelease(int speed){
     initArm();
     int i;
+    int check1;
+    int check2;
     while(1){
         i += 1;
         if (pos == RAISED && status == NOBALL){
             printf("Arm raised and no ball.\n");
-            if (checkIfMovable && checkIfCloseEnough){
+            check1 = checkIfMovable();
+            check2 = checkIfCloseEnough();
+            if (check1 == 1 && check2 == 1){
                 armCapturingMovable();
                 printf("Ball Captured!\n");
                 Sleep(2000);
             }
         }
-        else if (pos  == LOWERED && status == HASBALL){
+        else if (pos == LOWERED && status == HASBALL){
             runDistance(speed, 1000);
             waitForCommandToFinish();
             armReleasingMovable();
