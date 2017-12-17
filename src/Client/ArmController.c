@@ -35,16 +35,6 @@ void initArm(){
     status = NOBALL;
 }
 
-void armLogic(){
-    pos = RAISED;
-    status = NOBALL;
-    if (pos == LOWERED ){
-        raiseArm();
-    
-
-    }
-}
-
 int checkIfMovable(){
     int objType = recognizeObject();
     printf("Object Type is %i\n", objType);
