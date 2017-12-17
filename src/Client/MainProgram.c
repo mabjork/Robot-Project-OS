@@ -66,8 +66,9 @@ struct timeval tval_before, tval_after, tval_result;
 int main(int argc, char const *argv[]) {
     //btcommunication();
     init();
-    speed = getMaxSpeed();
-    testingBallRelease(speed);
+    int max_speed = getMaxSpeed();
+    regular_speed = max_speed * 0.2;
+    testingBallRelease(regular_speed);
     //startDiscovery();
     //stopmessage();
     return 0;
