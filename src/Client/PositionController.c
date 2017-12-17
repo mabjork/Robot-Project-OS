@@ -66,11 +66,7 @@ void setCurrentHeading(float heading){
     printf("Current heading is %f\n", heading);
     HEADING = heading;
 }
-<<<<<<< HEAD
-int getCurrentHeading(){
-=======
 float getCurrentHeading(){
->>>>>>> master
     return HEADING;
 }
 void initPositionController(int initialHeading){
