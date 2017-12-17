@@ -13,7 +13,7 @@ int getRightEngineState();
 void turnRight(int speed,int degrees);
 void turnLeft(int speed,int degrees);
 void runForever(int speed);
-void runToRelPos( int speed,int x, int y  , int currX,int currY);
+void runToRelPos( int speed,double distance, int h);
 void discoverEngines();
 void waitForCommandToFinish();
 void turnToDeg(int speed,int target);

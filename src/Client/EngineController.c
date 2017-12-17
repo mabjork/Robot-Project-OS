@@ -7,7 +7,6 @@
 #include "ev3_sensor.h"
 #include "headers/EngineController.h"
 #include "headers/SensorController.h"
-
 #include <math.h>
 #include <unistd.h>
 #include <time.h>
@@ -17,12 +16,13 @@
 #define L_MOTOR_EXT_PORT  EXT_PORT__NONE_
 #define R_MOTOR_PORT      OUTPUT_B
 #define R_MOTOR_EXT_PORT  EXT_PORT__NONE_
-#define IR_CHANNEL        0
 #define SPEED_LINEAR      75  /* Motor speed for linear motion, in percents */
 #define SPEED_CIRCULAR    50  /* ... for circular motion */
 #define DEGREE_TO_COUNT( d )  (( d ) * 260 / 90 )
-#define DEGREE_ERROR_MARGIN 1
+
+#define DEGREE_ERROR_MARGIN 2
 #define WHEEL_DIAMETER 5.6 // In centimetres
+
 
 int max_speed;  /* Motor maximal speed */
 int moving;   /* Current moving */
@@ -60,10 +60,8 @@ void discoverEngines(){
 	    if ( ev3_search_tacho_plugged_in(port,0, &sn, 0 )) {
             int speed;
             printf("LEGO engine found\n");
-            printf("Counter %i\n",counter);
             printf("Sequence number %i\n",sn);
             get_tacho_max_speed( sn, &speed );
-            printf("Max speed: %i\n",speed);
             motor[counter] = sn;
             counter++;
             max_speed = speed;
@@ -74,11 +72,7 @@ void discoverEngines(){
         printf("Port: %i\n",port);
     }
     arm = motor[3];
-    
 
-    printf("%i\n",motor[L]);
-    printf("%i\n",motor[R]);
-    printf("lols\n");
     return;
 }
 
@@ -102,7 +96,13 @@ int isRunning( void )
     if ( state != TACHO_STATE__NONE_ ) return ( 1 );
     return ( 0 );
 }
-
+void runDistance(int speed,double distance){
+    set_tacho_speed_sp( motor[ L ], speed );
+    set_tacho_speed_sp( motor[ R ], speed );
+    set_tacho_position_sp( motor[ L ], distance );
+    set_tacho_position_sp( motor[ R ], distance );
+    multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+}
 
 void runForever( int speed)
 {
@@ -112,26 +112,10 @@ void runForever( int speed)
     start_drive_time = time(0);
     moving = RUNNING;
 }
-void runToRelPos( int speed,int x, int y  , int currX,int currY)
-{   int newX = currX - x;
-    int newY = currY - y;
-    int turnDeg = atan (newY/newX);
-    int turn_speed = max_speed * 0.3;
-    if(x<currX){
-        turnLeft(turn_speed,turnDeg);
-    }
-    else{
-        turnRight(turn_speed,turnDeg);
-    }
-    int dist = sqrt(pow(newX,2) + pow(newY,2));
-    printf("Discance %i\n",dist);
-    set_tacho_speed_sp( motor[ L ], speed );
-    set_tacho_speed_sp( motor[ R ], speed );
-    set_tacho_position_sp( motor[ L ], dist );
-    set_tacho_position_sp( motor[ R ], dist );
-    multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
-    start_drive_time = time(0);
-    moving = RUNNING;
+void runToRelPos( int speed,double distance, int h){  
+    turnToDeg(max_speed*0.1,h);
+    runDistance(speed,distance);
+
 }
 void runTimed( int speed, int ms )
 {
@@ -148,8 +132,8 @@ void runTimed( int speed, int ms )
 }
 
 void turnRight(int speed,int degrees){
-    int deg1 = DEGREE_TO_COUNT(degrees);
-    int deg2 = DEGREE_TO_COUNT(-degrees);
+    int deg1 = degToDist(degrees);
+    int deg2 = degToDist(-degrees);
     set_tacho_speed_sp( motor[ L ], speed );
     set_tacho_speed_sp( motor[ R ], -speed );
     set_tacho_position_sp( motor[ L ], deg1 );
@@ -158,8 +142,8 @@ void turnRight(int speed,int degrees){
 }
 
 void turnLeft(int speed,int degrees){
-    int deg1 = DEGREE_TO_COUNT(degrees);
-    int deg2 = DEGREE_TO_COUNT(-degrees);
+    int deg1 = degToDist(degrees);
+    int deg2 = degToDist(-degrees);
     set_tacho_speed_sp( motor[ L ], -speed );
     set_tacho_speed_sp( motor[ R ], speed );
     set_tacho_position_sp( motor[ L ], deg2 );
@@ -210,27 +194,61 @@ int getRightEngineState(){
     return state;
 }
 void turnToDeg(int speed,int target){
+    
     int current_deg = getCompassDegrees();
+    int diff;
+    int left_diff;
+    int right_diff;
     do{
+        printf("Turning to degree : %i !!!!!!!!!!!\n",target);
+        printf("Current degree is : %i\n",current_deg);
+        /*
+        if (abs(target - current_deg) < abs( current_deg -target) ){
+            
+        }else{
+            
+        }
+        */
+        if(target > current_deg){
+            left_diff = (target - current_deg);
+            right_diff = (target - current_deg) - 360;
+
+        }else {
+            right_diff = (target - current_deg);
+            left_diff = 360 + (target - current_deg);
+        }
         
-        int diff = (target - current_deg) % 360;
+        printf("This is left diff : %i , This is right diff %i\n",left_diff,right_diff);
+        if (abs(left_diff) <= abs(right_diff)){
+            diff = left_diff;
+        }else if(abs(left_diff)  > abs(right_diff)){
+            diff = right_diff;
+        }
+
+        //diff = (target - current_deg);
+        
+        printf("Degree difference: %i\n", diff);
         turnNumberOfDegs(speed,diff);
         waitForCommandToFinish();
+        Sleep(1000);
         current_deg = getCompassDegrees();
-    }while(abs(current_deg-target) < DEGREE_ERROR_MARGIN);    
+    }while(abs(diff) > DEGREE_ERROR_MARGIN || abs(current_deg-target) > DEGREE_ERROR_MARGIN);    
 }
+
 void turnNumberOfDegs(int turn_speed, int degrees){
     int deg1 = DEGREE_TO_COUNT(degrees);
     int deg2 = DEGREE_TO_COUNT(-degrees);
-    set_tacho_speed_sp( motor[ L ], -turn_speed );
+    set_tacho_speed_sp( motor[ L ], turn_speed );
     set_tacho_speed_sp( motor[ R ], turn_speed);
     set_tacho_position_sp( motor[ L ], deg2 );
     set_tacho_position_sp( motor[ R ], deg1 );
     multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
 }
+
 void turnNumberOfDegsCorrected(int speed,int degree){
     int current_deg = getCompassDegrees();
-    int target = (current_deg - degree) % 360;
+    int target = (current_deg + degree) % 360;
+
     turnToDeg(speed,target);
 }
 void correctError(){
@@ -243,6 +261,10 @@ void getDistanceSinceLastCheck(int distance,int error){
 double getWheelDiameter(){
     return WHEEL_DIAMETER;
 }
+int degToDist(int deg){
+    return M_PI * WHEEL_DIAMETER * deg /360;
+}
+
 
 
 

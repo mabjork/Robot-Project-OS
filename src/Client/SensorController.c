@@ -68,6 +68,7 @@ int recognizeObject(){
 
   else if( obj_color == 2){
     printf("Blue detected. This is a moveable object.");
+    return 2;
   }
   
   //Recognizes nothing. This may be changed
