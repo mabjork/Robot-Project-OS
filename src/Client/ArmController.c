@@ -104,7 +104,7 @@ void testingBallRelease(int speed){
             waitForCommandToFinish();
         }
         Sleep(500);
-        printf("Iteration %i!\n", i)
+        printf("Iteration %i!\n", i);
 
     }
 }
