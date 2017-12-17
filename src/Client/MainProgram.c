@@ -12,10 +12,11 @@
 #include "headers/PositionController.h"
 #include "ev3.h"
 #include <math.h>
-#include "headers/BluetoothController.h"
+//#include "headers/BluetoothController.h"
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 #define OBJECT_TO_CLOSE 250
+#define COLOR_CHECK_DISTANCE 50
 #define TIME_TO_CHECK_WALL_CLOSENES 4
 #define MAP_HEIGHT 100
 #define MAP_WIDTH 100
@@ -52,6 +53,7 @@ enum obstacles{
 int max_speed;
 int regular_speed;
 int turn_speed;
+int check_color_speed;
 unsigned time_since_last_surroundings_check;
 unsigned time_since_last_wall_closenes_check;
 
@@ -61,7 +63,7 @@ float distances_around_robot[4];
 struct timeval tval_before, tval_after, tval_result;
 
 int main(int argc, char const *argv[]) {
-    btcommunication();
+    //btcommunication();
     init();
     startDiscovery();
     //stopmessage();
@@ -84,6 +86,7 @@ void startDiscovery(){
     max_speed = getMaxSpeed();
     regular_speed = max_speed * 0.2;
     turn_speed = 0.1 * max_speed;
+    check_color_speed = 0.05 * max_speed;
     runForever(regular_speed);
     time_since_last_surroundings_check = (unsigned)time(NULL);
     time_since_last_wall_closenes_check = (unsigned)time(NULL);
@@ -105,6 +108,8 @@ void startDiscovery(){
         
         if(distance < OBJECT_TO_CLOSE && is_running){
             measureAndUpdateTraveledDistance(&current_heading);
+            whatIsObstacle();
+            runDistance(regular_speed, -1000);
             evaluatePosition();
             gettimeofday(&tval_before, NULL);
             time_since_last_wall_closenes_check = time(NULL);
@@ -182,7 +187,23 @@ void setMapPointValue(){
 }
 //TODO: Make this method discover what the obstable is.
 int whatIsObstacle(){
-
+    runForever(check_color_speed);
+    while(1){
+        
+        float distance = getDistanceSensorValue();
+        if(distance <= COLOR_CHECK_DISTANCE){
+            stopEngines();
+            break;
+        }
+    }
+    int object = recognizeObject();
+    if(object == 1){
+        return NON_MOVABLE;
+    }else if(object == 2){
+        return MOVABLE;
+    }else{
+        return OTHER;
+    }
 }
 
 
@@ -220,7 +241,7 @@ void checkSouroundings(){
     turnToDeg(turn_speed,270);
     Sleep(1000);
     distances_around_robot[RIGHT] = getDistanceSensorValue();
-    turnToDeg(turn_speed,360);
+    turnToDeg(turn_speed,0);
     Sleep(1000);
     
 }
@@ -331,12 +352,15 @@ void goToNextUndiscoveredPoint(){
     printf("dx is %lf , dy is %lf, h is %f\n",dx,dy,h);
     runToRelPos(regular_speed,dist,h);
 }
+
 int isArrivedAtPoint(){
     return 0;
 }
-void findAlternateRoute(){
 
+void findAlternateRoute(){
+    
 }
+
 
 
 

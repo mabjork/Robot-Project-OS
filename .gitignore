@@ -52,4 +52,10 @@ Mkfile.old
 dkms.conf
 cmake-build-debug/
 PositionTest
+<<<<<<< HEAD
 .vscode/*
+=======
+MainProgram
+StopProgram
+ev3dev-c/
+>>>>>>> a99f9ae39d731ed75f00676ca327033a95b31b36
