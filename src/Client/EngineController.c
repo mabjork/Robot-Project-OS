@@ -28,7 +28,7 @@ int max_speed;  /* Motor maximal speed */
 int moving;   /* Current moving */
 
 enum { L, R };
-uint8_t motor[3]; /* Sequence numbers of motors */
+uint8_t motor[s]; /* Sequence numbers of motors */
 uint8_t arm;
 
 
@@ -71,7 +71,7 @@ void discoverEngines(){
         }
         printf("Port: %i\n",port);
     }
-    arm = motor[3];
+    arm = motor[2];
 
     return;
 }
@@ -171,6 +171,9 @@ void raiseArm(){
     set_tacho_speed_sp( arm, max_speed * 0.2);
     set_tacho_position_sp( arm,degree);
     set_tacho_command_inx( arm, TACHO_RUN_TO_REL_POS );
+    do {
+        get_tacho_state_flags
+    } while ()
 }
 void lowerArm(){
     int degree = DEGREE_TO_COUNT(-90);
