@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include <math.h>
+#include "headers/PositionController.h"
 
 #define CalcHeading(deg) ((deg + HEADING) % 360)
 #define CalcSquareX (int)((POS_X)/SQUARE_WIDTH)
@@ -20,12 +21,9 @@ enum{
 
 double POS_X;
 double POS_Y;
-int current_square_x;
-int current_square_y;
 int INITIAL_HEADING;
 int HEADING;
-int START_SQUARE_X;
-int START_SQUARE_Y;
+
 
 struct PointQueue {
     int ** queue;
@@ -63,7 +61,7 @@ void setCurrentHeading(int heading){
     printf("Current heading is %i\n", heading);
     HEADING = heading;
 }
-void getCurrentHeading(){
+int getCurrentHeading(){
     return HEADING;
 }
 void initPositionController(int initialHeading){

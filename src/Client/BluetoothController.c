@@ -7,7 +7,9 @@
 #include <math.h>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
+
 #include "headers/BluetoothController.h"
+#include "headers/PositionController.h"
 
 #define SERV_ADDR  "9c:ad:97:b1:a7:d2" /*Halvor PC BT*/ /* 38:ca:da:e9:90:6c Halvor Iphone BT */ 
 /* ROBOT BT "00:17:e9:f5:c9:dd" */ /*OS SERVER "dc:53:60:ad:61:90"*/
@@ -85,9 +87,9 @@ void positionprint () {
     string[2] = TEAM_ID;
     string[3] = 0xFF;
     string[4] = MSG_POSITION;
-    string[5] = i;          /* x */
+    string[5] = i;                  //(START_SQUARE_X - current_square_x);        //i;          /* x */
     string[6] = 0x00;
-    string[7] = i;              /* y */
+    string[7] = i;                    //(START_SQUARE_Y - current_square_y);                //i;              /* y */
     string[8]= 0x00;
     write(s, string, 9);
     Sleep( 1000 );
@@ -118,7 +120,7 @@ void stopmessage() {
     read_from_server (s, string, 58);
     type = string[4];
     if (type ==MSG_STOP){
-      return;
+      return; 
     }
   }
 }
@@ -126,3 +128,31 @@ void stopmessage() {
 //void write_to_server (struct team *t, const char *buf, size_t size) {
 //    write (t->sock, buf, size);
 //}
+
+
+//POSITION messages must be sent by robots every 2 seconds. This message is used to advertise the expected position of the robot.
+//The message is 9-bytes long:
+void positionmessage(){
+  char string[58];
+  char type;
+  int x1, x2, y1, y2;
+  int currentpos_x;
+  int currentpos_y;
+  //currentpos_x = START_SQUARE_X - current_square_x;
+  //currentpos_y = START_SQUARE_Y - current_square_y;
+  srand(time(NULL));
+  /* Send position message */
+  int i, j;
+  for (i=0; i<1; i++){
+	*((uint16_t *) string) = msgId++;
+  string[2] = TEAM_ID;
+  string[3] = 0xFF;
+  string[4] = MSG_POSITION;
+  string[5] = current_square_x;//currentpos_x;          /* x */
+  string[6] = 0x00;
+  string[7] = current_square_y;//currentpos_y;              /* y */
+  string[8]= 0x00;
+  write(s, string, 9);
+  Sleep( 1000 );
+  }
+}

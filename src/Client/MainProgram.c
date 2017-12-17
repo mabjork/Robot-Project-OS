@@ -61,8 +61,8 @@ struct timeval tval_before, tval_after, tval_result;
 
 int main(int argc, char const *argv[]) {
     btcommunication();
-    init();
-    startDiscovery();
+    //init();
+    //startDiscovery();
     //stopmessage();
     return 0;
 }
@@ -92,8 +92,11 @@ void startDiscovery(){
         //int command = readCommand();
 
         int is_running = isRunning();
-        float distance = getDistanceSensorValue();
+        float distance = getDistanceSensorValue();  
         float heading = getCompassDegrees();
+        positionmessage();
+        //positionprint();
+        
         //int gyro_value =getGyroDegress();
         //printf("Distance sensor value: %f\n", distance);
         //printf("Time since last check %u\n",(time(NULL)-time_since_last_wall_closenes_check));
