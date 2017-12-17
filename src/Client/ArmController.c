@@ -47,6 +47,7 @@ void armLogic(){
 
 int checkIfMovable(){
     int objType = recognizeObject();
+    printf("Object Type is %i\n", objType);
     if (objType == 2){
         return 1;
     }
@@ -55,7 +56,8 @@ int checkIfMovable(){
 
 int checkIfCloseEnough(){
     int distance = getDistanceSensorValue();
-    int maxDistance = 100;
+    printf("Distance is: %i\n", distance);
+    int maxDistance = 50;
     int minDistance = 0;
     if (distance <= maxDistance && distance >= minDistance){
         return 1;
@@ -87,7 +89,7 @@ void testingBallRelease(int speed){
     int i;
     while(1){
         i += 1;
-        if (pos == RAISED &&  status == NOBALL){
+        if (pos == RAISED && status == NOBALL){
             printf("Arm raised and no ball.\n");
             if (checkIfMovable && checkIfCloseEnough){
                 armCapturingMovable();
