@@ -5,4 +5,7 @@ float getDistanceSensorValue();
 float getCompassDegrees();
 float getGyroDegress();
 
+int recognizeObject();
+
+
 #endif

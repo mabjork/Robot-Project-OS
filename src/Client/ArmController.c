@@ -26,8 +26,8 @@ enum {
 };
 
 enum {
-    HASBALL,
-    NOBALL
+    NOBALL,
+    HASBALL
 }
 
 void initArm(){
@@ -87,7 +87,7 @@ void testingBallRelease(int speed){
     int i;
     while(1){
         i += 1;
-        if (pos == RAISED && status == NOBALL){
+        if (pos == RAISED &&  status == NOBALL){
             printf("Arm raised and no ball.\n");
             if (checkIfMovable && checkIfCloseEnough){
                 armCapturingMovable();
