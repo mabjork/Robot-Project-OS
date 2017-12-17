@@ -28,7 +28,7 @@ enum {
 enum {
     NOBALL,
     HASBALL
-}
+};
 
 void initArm(){
     pos = RAISED;
