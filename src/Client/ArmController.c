@@ -102,12 +102,12 @@ void testingBallRelease(int speed){
             }
         }
         if (pos == LOWERED && status == HASBALL){
-            runDistance(speed, 1000);
+            //runDistance(speed, 1000);
             waitForCommandToFinish();
             armReleasingMovable();
             printf("Ball released!\n");
             Sleep(1000);
-            runDistance(speed, -1000);
+            //runDistance(speed, -1000);
             waitForCommandToFinish();
         }
         Sleep(3000);
