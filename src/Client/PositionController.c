@@ -22,13 +22,9 @@ enum{
 double POS_X;
 double POS_Y;
 double REL_POS_X;
-double REL_POS_Y;
-int current_square_x;
-int current_square_y;
+double REL_POS_Y;;
 float INITIAL_HEADING;
 float HEADING;
-int START_SQUARE_X;
-int START_SQUARE_Y;
 
 struct PointQueue {
     int ** queue;
@@ -69,7 +65,7 @@ void setCurrentHeading(float heading){
 float getCurrentHeading(){
     return HEADING;
 }
-void initPositionController(int initialHeading){
+void initPositionController(float initialHeading){
     START_SQUARE_X = 1;
     START_SQUARE_Y = 1;
     current_square_x = 1;

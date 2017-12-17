@@ -12,7 +12,7 @@
 #include "headers/PositionController.h"
 #include "ev3.h"
 #include <math.h>
-//#include "headers/BluetoothController.h"
+#include "headers/BluetoothController.h"
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 #define OBJECT_TO_CLOSE 250
@@ -100,8 +100,11 @@ void startDiscovery(){
         int is_running = isRunning();       
         float distance = getDistanceSensorValue();
         float current_heading = getCompassDegrees();
-        positionmessage();
+        
+        bt_send_position();
+        //positionmessage();
         //positionprint();
+        
         //int gyro_value =getGyroDegress();
         //printf("Distance sensor value: %f\n", distance);
         //printf("Time since last check %u\n",(time(NULL)-time_since_last_wall_closenes_check));

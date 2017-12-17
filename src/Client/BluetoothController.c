@@ -54,7 +54,7 @@ void btcommunication() {
     }
 
     //call some function tocommunicate here, like robot(); in robotclient.c
-    positionprint();
+    //positionprint();
     init();
     startDiscovery(); 
     stopmessage(); // Has to be added to startDiscovery, it's never called now
@@ -131,7 +131,6 @@ void stopmessage() {
 
 
 //POSITION messages must be sent by robots every 2 seconds. This message is used to advertise the expected position of the robot.
-//The message is 9-bytes long:
 void positionmessage(){
   char string[58];
   char type;
@@ -156,3 +155,41 @@ void positionmessage(){
   Sleep( 1000 );
   }
 }
+
+/* Send a POSITION message to the server */
+ssize_t bt_send_position(){
+    char string[58];
+    float x, y;
+    int heading;
+    int16_t x1, y1;
+
+    //get_position_and_heading(&x, &y, &heading); 
+    x1 = (int16_t)current_square_x;
+    y1 = (int16_t)current_square_y;
+    printf("Sending X: %d, Y:%d\n", x1, y1);
+
+    // Remember to increment msgId
+    *((uint16_t *) string) = msgId++;
+    string[2] = TEAM_ID;
+    string[3] = 0xFF;
+    string[4] = MSG_POSITION;
+    // Little endian representation
+    string[5] = (uint8_t)(x1);
+    string[6] = (uint8_t)(x1>>8);
+    string[7] = (uint8_t)(y1);
+    string[8]= (uint8_t)(y1>>8);
+
+    /* Return number of bytes written */
+    return write(s, string, 9);
+    Sleep( 1000 );
+}
+
+/*
+void get_position_and_heading(float * x, float *y, int * heading){
+    pthread_mutex_lock(&position_mutex);
+    *x = POS_X;
+    *y = POS_Y;
+    *heading = HEADING;
+    pthread_mutex_unlock(&position_mutex);
+}
+*/
