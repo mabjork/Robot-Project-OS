@@ -92,7 +92,7 @@ void testingBallRelease(int speed){
             if (checkIfMovable && checkIfCloseEnough){
                 armCapturingMovable();
                 printf("Ball Captured!\n");
-                Sleep(1000);
+                Sleep(2000);
             }
         }
         else if (pos  == LOWERED && status == HASBALL){

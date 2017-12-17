@@ -18,6 +18,8 @@ void discoverEngines();
 void waitForCommandToFinish();
 void turnToDeg(int speed,int target);
 void turnNumberOfDegsCorrected(int turn_speed,int degree);
+void raiseArm();
+void lowerArm();
 
 double getWheelDiameter();
 

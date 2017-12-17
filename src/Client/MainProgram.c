@@ -68,7 +68,10 @@ int main(int argc, char const *argv[]) {
     init();
     int max_speed = getMaxSpeed();
     regular_speed = max_speed * 0.2;
-    testingBallRelease(regular_speed);
+    lowerArm();
+    Sleep(2000);
+    raiseArm();
+    //testingBallRelease(regular_speed);
     //startDiscovery();
     //stopmessage();
     return 0;
