@@ -28,7 +28,7 @@ int max_speed;  /* Motor maximal speed */
 int moving;   /* Current moving */
 
 enum { L, R };
-uint8_t motor[s]; /* Sequence numbers of motors */
+uint8_t motor[2]; /* Sequence numbers of motors */
 uint8_t arm;
 
 
