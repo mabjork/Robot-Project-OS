@@ -98,10 +98,10 @@ void testingBallRelease(int speed){
             if (check1 == 1 && check2 == 1){
                 armCapturingMovable();
                 printf("Ball Captured!\n");
-                Sleep(2000);
+                Sleep(1000);
             }
         }
-        else if (pos == LOWERED && status == HASBALL){
+        if (pos == LOWERED && status == HASBALL){
             runDistance(speed, 1000);
             waitForCommandToFinish();
             armReleasingMovable();

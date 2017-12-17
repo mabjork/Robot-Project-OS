@@ -72,7 +72,7 @@ void discoverEngines(){
         printf("Port: %i\n",port);
     }
     arm = motor[2];
-
+    motor[2] = DESC_LIMIT;
     return;
 }
 
