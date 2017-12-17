@@ -167,14 +167,14 @@ void waitForCommandToFinish(){
 
 
 void raiseArm(){
-    int degree = DEGREE_TO_COUNT(30);
+    int degree = DEGREE_TO_COUNT(25);
     set_tacho_speed_sp( arm, max_speed * 0.2);
     set_tacho_position_sp( arm,degree);
     set_tacho_command_inx( arm, TACHO_RUN_TO_REL_POS );
 }
 
 void lowerArm(){
-    int degree = DEGREE_TO_COUNT(-28);
+    int degree = DEGREE_TO_COUNT(-20);
     set_tacho_speed_sp( arm, max_speed * 0.2);
     set_tacho_position_sp( arm,degree);
     set_tacho_command_inx( arm, TACHO_RUN_TO_REL_POS );

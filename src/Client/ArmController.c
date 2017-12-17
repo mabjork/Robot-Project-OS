@@ -59,7 +59,7 @@ int checkIfCloseEnough(){
     printf("Distance is: %i\n", distance);
     int maxDistance = 50;
     int minDistance = 0;
-    if (distance <= maxDistance && distance >= minDistance){
+    if ((distance <= maxDistance && distance >= minDistance) || distance == 2550){
         return 1;
     }
     else{ return 0; }
@@ -106,10 +106,11 @@ void testingBallRelease(int speed){
             waitForCommandToFinish();
             armReleasingMovable();
             printf("Ball released!\n");
+            Sleep(1000);
             runDistance(speed, -1000);
             waitForCommandToFinish();
         }
-        Sleep(500);
+        Sleep(3000);
         printf("Iteration %i!\n", i);
 
     }
