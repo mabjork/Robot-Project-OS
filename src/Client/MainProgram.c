@@ -104,7 +104,7 @@ void startDiscovery(){
     regular_speed = max_speed * 0.2;
     turn_speed = 0.1 * max_speed;
     check_color_speed = 0.05 * max_speed;
-    turnLeft(turn_speed,90);
+    turnNumberOfDegsCorrected(turn_speed,90);
     waitForCommandToFinish();
    
     
@@ -232,19 +232,24 @@ int whatIsObstacle(){
             break;
         }
     }
-    turnNumberOfDegsCorrected(turn_speed,25),
+    turnNumberOfDegsCorrected(turn_speed,30),
     waitForCommandToFinish();
     Sleep(500);
     float dist1 = getDistanceSensorValue();
     Sleep(500);
-    turnNumberOfDegsCorrected(turn_speed,-50);
+    turnNumberOfDegsCorrected(turn_speed,-60);
     waitForCommandToFinish();
     Sleep(500);
     float dist2 = getDistanceSensorValue();
     Sleep(500);
-    turnNumberOfDegsCorrected(turn_speed,25);
+    turnNumberOfDegsCorrected(turn_speed,30);
     waitForCommandToFinish();
     Sleep(500);
+    int object = recognizeObject();
+    if(object == 2){
+        printf("The object is movable !!!!!!!!!!!!!!!!!!\n");
+        return MOVABLE;
+    }
     if (dist1 > 200 && dist2 > 200){
         printf("The object is movable !!!!!!!!!!!!!!!!!!\n");
         //Sleep(10000);
@@ -254,16 +259,9 @@ int whatIsObstacle(){
         printf("The object is non movable !!!!!!!!!!!!!!!!!!\n");
         //Sleep(10000);
         return NON_MOVABLE;
-    }/*
-    int object = recognizeObject();
-    if(object == 1){
-        return NON_MOVABLE;
-    }else if(object == 2){
-        return MOVABLE;
-    }else{
-        return OTHER;
     }
-    */
+
+    
 }
 
 
