@@ -18,7 +18,7 @@
 #define R_MOTOR_EXT_PORT  EXT_PORT__NONE_
 #define SPEED_LINEAR      75  /* Motor speed for linear motion, in percents */
 #define SPEED_CIRCULAR    50  /* ... for circular motion */
-#define DEGREE_TO_COUNT( d )  (( d ) * 260 / 90 )
+#define DEGREE_TO_COUNT( d )  (( d ) * 260 / 180 )
 
 #define DEGREE_ERROR_MARGIN 2
 #define WHEEL_DIAMETER 5.6 // In centimetres
@@ -27,8 +27,8 @@
 int max_speed;  /* Motor maximal speed */
 int moving;   /* Current moving */
 
-enum { L, R };
-uint8_t motor[2]; /* Sequence numbers of motors */
+enum { L , R , A };
+uint8_t motor[3]; /* Sequence numbers of motors */
 uint8_t arm;
 
 
@@ -72,7 +72,7 @@ void discoverEngines(){
         printf("Port: %i\n",port);
     }
     arm = motor[2];
-    motor[2] = DESC_LIMIT;
+
     return;
 }
 
@@ -197,11 +197,12 @@ int getRightEngineState(){
     return state;
 }
 void turnToDeg(int speed,int target){
-    
+    printf("Turning number of degs !!!!!!");
     int current_deg = getCompassDegrees();
     int diff;
     int left_diff;
     int right_diff;
+    
     do{
         printf("Turning to degree : %i !!!!!!!!!!!\n",target);
         printf("Current degree is : %i\n",current_deg);
@@ -212,6 +213,7 @@ void turnToDeg(int speed,int target){
             
         }
         */
+        
         if(target > current_deg){
             left_diff = (target - current_deg);
             right_diff = (target - current_deg) - 360;
@@ -233,25 +235,41 @@ void turnToDeg(int speed,int target){
         printf("Degree difference: %i\n", diff);
         turnNumberOfDegs(speed,diff);
         waitForCommandToFinish();
-        Sleep(1000);
+        Sleep(1500);
         current_deg = getCompassDegrees();
-    }while(abs(diff) > DEGREE_ERROR_MARGIN || abs(current_deg-target) > DEGREE_ERROR_MARGIN);    
+    }while(abs(diff) > DEGREE_ERROR_MARGIN);  
+    printf("DONE!!!\n");
 }
 
-void turnNumberOfDegs(int turn_speed, int degrees){
-    int deg1 = DEGREE_TO_COUNT(degrees);
+void turnNumberOfDegs(int turn_speed,int degrees){
+    //printf("Turning number of degs !!!!!!");
+    int deg = DEGREE_TO_COUNT(degrees);
     int deg2 = DEGREE_TO_COUNT(-degrees);
-    set_tacho_speed_sp( motor[ L ], turn_speed );
+    /*
+    if(degrees < 0){
+        set_tacho_speed_sp( motor[ L ], turn_speed);
+        set_tacho_speed_sp( motor[ R ], -turn_speed);
+    }else{
+        set_tacho_speed_sp( motor[ L ], -turn_speed);
+        set_tacho_speed_sp( motor[ R ], turn_speed);
+    }
+    */
+    set_tacho_speed_sp( motor[ L ], turn_speed);
     set_tacho_speed_sp( motor[ R ], turn_speed);
     set_tacho_position_sp( motor[ L ], deg2 );
-    set_tacho_position_sp( motor[ R ], deg1 );
+    set_tacho_position_sp( motor[ R ], deg );
     multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+    printf("Should drive \n");
 }
+
 
 void turnNumberOfDegsCorrected(int speed,int degree){
     int current_deg = getCompassDegrees();
     int target = (current_deg + degree) % 360;
-
+    if(target < 0){
+        target += 360;
+    }
+    printf("Should turn to %i\n",target);
     turnToDeg(speed,target);
 }
 void correctError(){

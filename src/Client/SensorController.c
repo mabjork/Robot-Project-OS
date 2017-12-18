@@ -82,14 +82,14 @@ int recognizeObject(){
 
 //# GYRO SENSOR -------------------------------------
 
-int getGyroDegrees(){
-  int val;
+float getGyroDegress(){
+  float val;
   uint8_t sn_gyro;
   if ( ev3_search_sensor( LEGO_EV3_GYRO, &sn_gyro, 0 )) {
     if ( !get_sensor_value0( sn_gyro, &val )) {
       val = 0;
     }
-    printf( "\r(%d) \n", val);
+    //printf( "\r(%d) \n", val);
     fflush( stdout );
 
   }
@@ -113,7 +113,7 @@ float getDistanceSensorValue(){
 
   uint8_t sn_sonar;
   if ( ev3_search_sensor( LEGO_EV3_US, &sn_sonar, 0 )) {
-    set_sensor_mode( sn_sonar, "US-DIST-CM" );
+    //set_sensor_mode( sn_sonar, "US-DIST-CM" );
     if ( !get_sensor_value0( sn_sonar, &val )) {
         val = -1;
       }
