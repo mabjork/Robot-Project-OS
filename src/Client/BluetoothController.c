@@ -164,8 +164,8 @@ ssize_t bt_send_position(){
     int16_t x1, y1;
 
     //get_position_and_heading(&x, &y, &heading); 
-    x1 = (int16_t)current_square_x;
-    y1 = (int16_t)current_square_y;
+    x1 = (int16_t)(current_square_x - START_SQUARE_X) ;
+    y1 = (int16_t)(current_square_y - START_SQUARE_Y);
     printf("Sending X: %d, Y:%d\n", x1, y1);
 
     // Remember to increment msgId
