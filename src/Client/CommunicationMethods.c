@@ -21,26 +21,21 @@
 #define MSG_OBSTACLE 7
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
-//ACK messages are used to acknowledge the reception of messages. They are 8-byte long
-void ack(){
-	*((uint16_t *) string) = msgId++; //msg id
-	//int id; //is a 2-byte number identifying the message (kind of like a sequence number). It is used when acknowledging messages
-	int src = TEAM_ID; //team who sent the message
-	int dst;  //team who should receive the message
-	int type = MSG_ACK; //identifies the kind of message that is sent
-	int idack; //ID of the message that is acknowledged
-	int state; //state is a status code. 0 -> OK, 1 -> error. Other status codes may be used for acknowledging custom messages.
-	
-	//Messages sent by the server should not be acknowledged.
+/* Send an ACK message */
+ssize_t bt_send_ack(uint16_t ackId, uint8_t dest, uint8_t statusCode){
+    char string[58];
+    printf("BT Sending ACK\n");
+    // Remember to increment msgId
+    *((uint16_t *) string) = msgId++;
+    string[2] = TEAM_ID;
+    string[3] = dest;
+    string[4] = MSG_ACK;
+    *((uint16_t *) string+5) = ackId;
+    string[7] = statusCode;
+
+    /* Return number of bytes written */
+    return write(s, string, 8);
 }
-
-//START messages can only be used by the server. One is sent to each team when the game starts. If the robot disconnects and reconnects
-//during the game, another START message will be sent to it right after it connects to the server. They are 8-byte long
-
-//STOP messages are sent by server to every robot when the game ends. They are 5-bytes long
-
-//KICK messages can only be sent by the server. This message is used to advertise that a robot got kicked out of the game. It is sent
-//to every robot in the game. The message is 6-bytes long
 
 
 //POSITION messages must be sent by robots every 2 seconds. This message is used to advertise the expected position of the robot.
@@ -50,22 +45,39 @@ void position(int x, int y){
     string[2] = TEAM_ID;
     string[3] = 0xFF;
     string[4] = MSG_POSITION;
-    string[5] = i;          /* x */
+    string[5] = x;          /* x */
     string[6] = 0x00;
-    string[7] = i;              /* y */
+    string[7] = y;              /* y */
     string[8]= 0x00;
     write(s, string, 9);
     Sleep( 1000 );
+}
 
-/*
-	*((uint16_t *) string) = msgId++;
-	//int ID; 
-	int src = TEAM_ID;
-	int dst = 0XFF;
-	int type = MSG_POSITION;
-	int x; //This field is a signed 16-bits little-endian integer.
-	int y; //This field is a signed 16-bits little-endian integer. 
-*/
+/* Send a POSITION message to the server */
+ssize_t bt_send_position(){
+    char string[58];
+    float x, y;
+    int heading;
+    int16_t x1, y1;
+
+    get_position_and_heading(&x, &y, &heading); 
+    x1 = (int16_t)x;
+    y1 = (int16_t)y;
+    printf("Sending X: %d, Y:%d\n", x1, y1);
+
+    // Remember to increment msgId
+    *((uint16_t *) string) = msgId++;
+    string[2] = TEAM_ID;
+    string[3] = 0xFF;
+    string[4] = MSG_POSITION;
+    // Little endian representation
+    string[5] = (uint8_t)(x1);
+    string[6] = (uint8_t)(x1>>8);
+    string[7] = (uint8_t)(y1);
+    string[8]= (uint8_t)(y1>>8);
+
+    /* Return number of bytes written */
+    return write(s, string, 9);
 }
 
 //After the entire map has been generated, the robot sends the server each 5x5 cm grid one pixel at a time.
