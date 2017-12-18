@@ -12,7 +12,7 @@
 #include "headers/PositionController.h"
 
 #define SERV_ADDR  "9c:ad:97:b1:a7:d2" /*Halvor PC BT*/ /* 38:ca:da:e9:90:6c Halvor Iphone BT */ 
-/* ROBOT BT "00:17:e9:f5:c9:dd" */ /*OS SERVER "dc:53:60:ad:61:90"*/
+/* ROBOT BT "00:17:e9:f5:c9:dd" */ /*OS SERVER "dc:53:60:ad:61:90"*/ /*BT SERVER "00:1a:7d:da:71:06*/
 
 #define TEAM_ID 14
 
@@ -181,7 +181,7 @@ ssize_t bt_send_position(){
 
     /* Return number of bytes written */
     return write(s, string, 9);
-    Sleep( 1000 );
+    //Sleep( 1000 );
 }
 
 /*

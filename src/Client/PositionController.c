@@ -78,7 +78,7 @@ void initPositionController(float initialHeading){
     REL_POS_Y = 0;
     updateMap(1,1,'S');
     printMatrix(&map);
-    initQueue(&point_queue,9);
+    initQueue(9);
 }
 
 void updateRobotPosition(double distance){
@@ -107,7 +107,7 @@ void updateRobotPosition(double distance){
     int square_y = CalcSquareY;//(POS_Y);
     
     if(square_x != current_square_x || square_y != current_square_y){
-        updateMap(current_square_x,current_square_y, 'D');
+        //updateMap(current_square_x,current_square_y, 'D');
     }
     
     if(square_x != current_square_x){
@@ -117,7 +117,7 @@ void updateRobotPosition(double distance){
         if(current_square_x < 0){
             printf("Adding col to start of map!\n");
             for(int i = 0;i<abs(current_square_x);i++){
-                addColLower(&map);
+                //addColLower(&map);
             }
             POS_X += abs(current_square_x)*SQUARE_WIDTH;
             current_square_x = 0;
@@ -128,7 +128,7 @@ void updateRobotPosition(double distance){
             int diff = current_square_x - map.width + 1;
             for(int i = 0; i<diff;i++){
                 printf("Adding col to end of map!\n");
-                addCol(&map);
+                //addCol(&map);
             }
         }
         
@@ -140,7 +140,7 @@ void updateRobotPosition(double distance){
         if(current_square_y < 0){
             printf("Adding row to start of map!\n");
             for(int i = 0;i<abs(current_square_y);i++){
-                addRowLower2(&map);
+                //addRowLower2(&map);
             }
             POS_Y += abs(current_square_y)*SQUARE_HEIGHT;
             current_square_y = 0;
@@ -151,14 +151,14 @@ void updateRobotPosition(double distance){
             int diff = current_square_y - map.height + 1;
             for(int i = 0; i<diff;i++){
                 printf("Adding row to end of map!\n");
-                addRow(&map);
+                //addRow(&map);
             }
         }
     }
     printf("Current pos is %lf,%lf\n",POS_X,POS_Y);
     
-    updateMap(current_square_x,current_square_y,'R');
-    printMatrix(&map);
+    //updateMap(current_square_x,current_square_y,'R');
+    //printMatrix(&map);
 }
 
 void updateMap(int x,int y,char value){
@@ -176,23 +176,30 @@ void updateMap(int x,int y,char value){
     
 }
 
-void initQueue(struct PointQueue * queue,size_t initialSize){
-    queue->queue = (int *)malloc(initialSize * sizeof(int));
-    queue->used = 0;
-    queue->size = initialSize;
+void initQueue(size_t initialSize){
+    point_queue.queue = (int *)malloc(initialSize * sizeof(int));
+    point_queue.used = 0;
+    point_queue.size = initialSize;
 }
-void appentToQueue(struct PointQueue * queue, int* point){
-    if(queue->size == queue->used){
-        queue->size *= 2;
-        queue->queue = (int *)realloc(queue->queue,queue->size * sizeof(int));
+void appentToQueue(int* point){
+    printf("Appending %i,%i\n",point[0],point[1]);
+    if(point_queue.size == point_queue.used){
+        point_queue.size *= 2;
+        point_queue.queue = (int *)realloc(point_queue.queue,point_queue.size * sizeof(int));
     }
-    queue->queue[queue->used++] = point;
+
+    point_queue.queue[point_queue.used] = point;
+    point_queue.used += 1;
+    printf("Used %i\n", point_queue.used);
+    
 }
 int * popFromQueue(){
     int * point;
     if(point_queue.used>0){
         point_queue.used--;
-        return point_queue.queue[point_queue.used];
+        point = point_queue.queue[point_queue.used];
+        printf("This shuld be point x %i\n",*(point));
+        return point;
         
         
     }
@@ -394,9 +401,10 @@ void findPoints(){
         row = rows[i];
         for(int j = 0 ; j< row.size;j++){
             if (row.array[j] == 'U'){
-                printf("Found point %i,%i\n",j,i);
-                int point[2] = {j,i};
-                appentToQueue(&point_queue,&point);
+                
+                int point[2] = {i,j};
+                printf("Found point %i,%i\n",point[0],point[1]);
+                appentToQueue(point);
             }
         }
     }
@@ -419,19 +427,41 @@ void getDistanceAndDirectionToPoint(int x ,int y,double *diff_x,double *diff_y,f
 
 /*
 int main(int argc, char const *argv[]) {
-    
+    int target =  (200 - 340) % 360;
+    target += 360;
+    printf("Target is %i\n", target);
     //printf("Rads %f\n",rad);
     //printf("%f\n",cos(rad));
-
+    int *point;
+    int x;
+    int y;
     
     initPositionController(0);
     findPoints();
-    sortPositionsBasedOnDistance();
-    int * point = popFromQueue();
-    int x = *(point);
-    int y = *(point + 1);
+    printQueue(&point_queue);
+    //sortPositionsBasedOnDistance();
+    printf("Used positions %i\n",point_queue.used);
+    point = popFromQueue();
+    x = *(point);
+    y = *(point + 1);
+    printf("Used positions %i\n",point_queue.used);
     printf("This is closest x: %i , This is closest y: %i \n",x,y);
-    
+    point = popFromQueue();
+    x = *(point);
+    y = *(point + 1);
+    printf("Used positions %i\n",point_queue.used);
+    printf("This is closest x: %i , This is closest y: %i \n",x,y);
+    point = popFromQueue();
+    x = *(point);
+    y = *(point + 1);
+    printf("Used positions %i\n",point_queue.used);
+    printf("This is closest x: %i , This is closest y: %i \n",x,y);
+    point = popFromQueue();
+    x = *(point);
+    y = *(point + 1);
+    printf("Used positions %i\n",point_queue.used);
+    printf("This is closest x: %i , This is closest y: %i \n",x,y);
+    /*
     setCurrentHeading(45);
     updateRobotPosition(5);
     setCurrentHeading(90);
@@ -466,9 +496,11 @@ int main(int argc, char const *argv[]) {
     updateRobotPosition(5);
     updateRobotPosition(5);
     updateRobotPosition(5);
-      
+    
+    
 }
 */
+
 
 
 
@@ -488,6 +520,17 @@ void printMatrix(struct Map *m){
     }
     printf("\n");
     
+}
+void printQueue(struct PointQueue *queue){
+    int * point;
+    int x;
+    int y;
+    for(int i = 0; i<queue->used;i++){
+        point = queue->queue[i];
+        x = *point;
+        y = *(point + 1);
+        printf("x = %i , y = %i\n", x,y);
+    }
 }
 
 void sortPositionsBasedOnDistance(){
