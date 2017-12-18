@@ -47,7 +47,7 @@ int checkIfMovable(){
 int checkIfCloseEnough(){
     int distance = getDistanceSensorValue();
     printf("Distance is: %i\n", distance);
-    int maxDistance = 50;
+    int maxDistance = 70;
     int minDistance = 0;
     if ((distance <= maxDistance && distance >= minDistance) || distance == 2550){
         return 1;
@@ -92,13 +92,15 @@ void testingBallRelease(int speed){
             }
         }
         if (pos == LOWERED && status == HASBALL){
-            //runDistance(speed, 1000);
+            runDistance(speed, 500);
             waitForCommandToFinish();
             armReleasingMovable();
             printf("Ball released!\n");
             Sleep(1000);
-            //runDistance(speed, -1000);
+            runDistance(speed, -500);
             waitForCommandToFinish();
+            printf("Finished.");
+            break;
         }
         Sleep(3000);
         printf("Iteration %i!\n", i);

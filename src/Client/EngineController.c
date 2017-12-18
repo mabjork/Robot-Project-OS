@@ -101,7 +101,9 @@ void runDistance(int speed,double distance){
     set_tacho_speed_sp( motor[ R ], speed );
     set_tacho_position_sp( motor[ L ], distance );
     set_tacho_position_sp( motor[ R ], distance );
-    multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+    set_tacho_command_inx( motor[ L ], TACHO_RUN_TO_REL_POS );
+    set_tacho_command_inx( motor[ R ], TACHO_RUN_TO_REL_POS );
+
 }
 
 void runForever( int speed)
