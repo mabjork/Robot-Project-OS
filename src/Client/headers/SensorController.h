@@ -4,5 +4,6 @@
 float getDistanceSensorValue();
 float getCompassDegrees();
 float getGyroDegress();
+void calibrateGyro();
 
 #endif
