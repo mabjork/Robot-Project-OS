@@ -235,7 +235,7 @@ void turnToDeg(int speed,int target){
         printf("Degree difference: %i\n", diff);
         turnNumberOfDegs(speed,diff);
         waitForCommandToFinish();
-        Sleep(1500);
+        Sleep(200);
         current_deg = getCompassDegrees();
     }while(abs(diff) > DEGREE_ERROR_MARGIN);  
     printf("DONE!!!\n");

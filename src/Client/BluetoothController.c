@@ -11,8 +11,8 @@
 #include "headers/BluetoothController.h"
 #include "headers/PositionController.h"
 
-#define SERV_ADDR  "9c:ad:97:b1:a7:d2" /*Halvor PC BT*/ /* 38:ca:da:e9:90:6c Halvor Iphone BT */ 
-/* ROBOT BT "00:17:e9:f5:c9:dd" */ /*OS SERVER "dc:53:60:ad:61:90"*/ /*BT SERVER "00:1a:7d:da:71:06*/
+#define SERV_ADDR "00:1a:7d:da:71:06" //"9c:ad:97:b1:a7:d2" /*Halvor PC BT*/ /* 38:ca:da:e9:90:6c Halvor Iphone BT */ 
+/* ROBOT BT "00:17:e9:f5:c9:dd" */ /*OS SERVER "dc:53:60:ad:61:90"*/ /*BT SERVER "00:1a:7d:da:71:06"*/
 
 #define TEAM_ID 14
 
@@ -164,8 +164,8 @@ ssize_t bt_send_position(){
     int16_t x1, y1;
 
     //get_position_and_heading(&x, &y, &heading); 
-    x1 = (int16_t)(current_square_x - START_SQUARE_X) ;
-    y1 = (int16_t)(current_square_y - START_SQUARE_Y);
+    x1 = (int16_t)(current_square_x); //- START_SQUARE_X) ;
+    y1 = (int16_t)(current_square_y); //- START_SQUARE_Y);
     printf("Sending X: %d, Y:%d\n", x1, y1);
 
     // Remember to increment msgId

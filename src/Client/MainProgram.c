@@ -15,7 +15,7 @@
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 #define OBJECT_TO_CLOSE 250
 #define COLOR_CHECK_DISTANCE 100
-#define TIME_TO_CHECK_WALL_CLOSENES 4
+#define TIME_TO_CHECK_WALL_CLOSENES 3
 #define TIME_TO_SEND_POS 1
 
 
@@ -100,8 +100,8 @@ void startDiscovery(){
     regular_speed = max_speed * 0.2;
     turn_speed = 0.1 * max_speed;
     check_color_speed = 0.05 * max_speed;
-    turnLeft(turn_speed,90);
-    waitForCommandToFinish();
+    //turnLeft(turn_speed,90);
+    //waitForCommandToFinish();
    
     
     time_since_last_surroundings_check = (unsigned)time(NULL);
@@ -230,17 +230,15 @@ int whatIsObstacle(){
     }
     turnNumberOfDegsCorrected(turn_speed,25),
     waitForCommandToFinish();
-    Sleep(500);
+    Sleep(100);
     float dist1 = getDistanceSensorValue();
-    Sleep(500);
     turnNumberOfDegsCorrected(turn_speed,-50);
     waitForCommandToFinish();
-    Sleep(500);
+    Sleep(100);
     float dist2 = getDistanceSensorValue();
-    Sleep(500);
     turnNumberOfDegsCorrected(turn_speed,25);
     waitForCommandToFinish();
-    Sleep(500);
+    Sleep(100);
     if (dist1 > 200 && dist2 > 200){
         printf("The object is movable !!!!!!!!!!!!!!!!!!\n");
         //Sleep(10000);
@@ -353,18 +351,18 @@ void checkIfCloseToWall(){
     float distanceLeft;
     float distanceRight;
     stopEngines();
-    Sleep(1000);
+    Sleep(100);
     turnNumberOfDegsCorrected(turn_speed,30);
     waitForCommandToFinish();
     distanceLeft = getDistanceSensorValue();
-    Sleep(1000);
+    Sleep(100);
     turnNumberOfDegsCorrected(turn_speed,-60);
     waitForCommandToFinish();
     distanceRight = getDistanceSensorValue();
-    Sleep(1000);
+    Sleep(100);
     turnNumberOfDegsCorrected(turn_speed,30);
     waitForCommandToFinish();
-    Sleep(1000);
+    Sleep(100);
 
     if(distanceLeft <= OBJECT_TO_CLOSE && distanceRight <= OBJECT_TO_CLOSE){
         printf("Close both directions, turn around");
