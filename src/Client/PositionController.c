@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include <math.h>
+#include "headers/PositionController.h"
 
 #define CalcHeading(deg) ((deg + HEADING) % 360)
 #define CalcSquareX (int)((POS_X)/SQUARE_WIDTH)
@@ -21,13 +22,9 @@ enum{
 double POS_X;
 double POS_Y;
 double REL_POS_X;
-double REL_POS_Y;
-int current_square_x;
-int current_square_y;
+double REL_POS_Y;;
 float INITIAL_HEADING;
 float HEADING;
-int START_SQUARE_X;
-int START_SQUARE_Y;
 
 struct PointQueue {
     int ** queue;
@@ -113,7 +110,7 @@ void updateRobotPosition(double distance){
     int square_y = CalcSquareY;//(POS_Y);
     
     if(square_x != current_square_x || square_y != current_square_y){
-        updateMap(current_square_x,current_square_y, 'D');
+        //updateMap(current_square_x,current_square_y, 'D');
     }
     
     if(square_x != current_square_x){
@@ -123,7 +120,7 @@ void updateRobotPosition(double distance){
         if(current_square_x < 0){
             printf("Adding col to start of map!\n");
             for(int i = 0;i<abs(current_square_x);i++){
-                addColLower(&map);
+                //addColLower(&map);
             }
             POS_X += abs(current_square_x)*SQUARE_WIDTH;
             current_square_x = 0;
@@ -134,7 +131,7 @@ void updateRobotPosition(double distance){
             int diff = current_square_x - map.width + 1;
             for(int i = 0; i<diff;i++){
                 printf("Adding col to end of map!\n");
-                addCol(&map);
+                //addCol(&map);
             }
         }
         
@@ -146,7 +143,7 @@ void updateRobotPosition(double distance){
         if(current_square_y < 0){
             printf("Adding row to start of map!\n");
             for(int i = 0;i<abs(current_square_y);i++){
-                addRowLower2(&map);
+                //addRowLower2(&map);
             }
             POS_Y += abs(current_square_y)*SQUARE_HEIGHT;
             current_square_y = 0;
@@ -157,14 +154,14 @@ void updateRobotPosition(double distance){
             int diff = current_square_y - map.height + 1;
             for(int i = 0; i<diff;i++){
                 printf("Adding row to end of map!\n");
-                addRow(&map);
+                //addRow(&map);
             }
         }
     }
     printf("Current pos is %lf,%lf\n",POS_X,POS_Y);
     
-    updateMap(current_square_x,current_square_y,'R');
-    printMatrix(&map);
+    //updateMap(current_square_x,current_square_y,'R');
+    //printMatrix(&map);
 }
 
 void updateMap(int x,int y,char value){

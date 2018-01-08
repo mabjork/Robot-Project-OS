@@ -10,12 +10,13 @@
 #include "headers/PositionController.h"
 #include "ev3.h"
 #include <math.h>
-//#include "headers/BluetoothController.h"
+#include "headers/BluetoothController.h"
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 #define OBJECT_TO_CLOSE 250
 #define COLOR_CHECK_DISTANCE 100
 #define TIME_TO_CHECK_WALL_CLOSENES 4
+#define TIME_TO_SEND_POS 1
 
 
 
@@ -52,6 +53,8 @@ int turn_speed;
 int check_color_speed;
 unsigned time_since_last_surroundings_check;
 unsigned time_since_last_wall_closenes_check;
+unsigned time_since_last_position_update;
+
 
 //char surroundins_map[MAP_HEIGHT][MAP_WIDTH];
 float distances_around_robot[4];
@@ -59,15 +62,13 @@ float distances_around_robot[4];
 struct timeval tval_before, tval_after, tval_result;
 
 int main(int argc, char const *argv[]) {
-    init();
-    //test();
     //btcommunication();
-    
+    init();
     startDiscovery();
-    
     //stopmessage();
     return 0;
 }
+
 void test(){
     turn2(90);
     float init_deg = getInitialHeading();
@@ -115,14 +116,17 @@ void startDiscovery(){
     
     time_since_last_surroundings_check = (unsigned)time(NULL);
     time_since_last_wall_closenes_check = (unsigned)time(NULL);
+    time_since_last_position_update = (unsigned)time(NULL);
     //goToNextUndiscoveredPoint();
     gettimeofday(&tval_before, NULL);
+    //bt_send_position();
     runForever(regular_speed);
+
     while(1){
         
         //int command = readCommand();
 
-        int is_running = isRunning();
+        int is_running = isRunning();       
         float distance = getDistanceSensorValue();
         float current_heading = getGyroDegrees();
         //int gyro_value =getGyroDegress();
@@ -144,7 +148,7 @@ void startDiscovery(){
             waitForCommandToFinish();
             measureAndUpdateTraveledDistance(-regular_speed,&current_heading);
             //evaluatePosition();
-            turnNumberOfDegsCorrected(turn_speed,140);
+            turnNumberOfDegsCorrected(turn_speed,110);
             runForever(regular_speed);
             gettimeofday(&tval_before, NULL);
             time_since_last_wall_closenes_check = time(NULL);
@@ -170,7 +174,13 @@ void startDiscovery(){
             }
             
         }
-        //Sleep(100);
+        /*
+        if(time(NULL) - time_since_last_position_update > TIME_TO_SEND_POS){
+            bt_send_position();
+            time_since_last_position_update = time(NULL);
+        }
+        */
+        //Sleep(1000);
         
         
 
@@ -227,25 +237,27 @@ int whatIsObstacle(){
             break;
         }
     }
-    turnNumberOfDegsCorrected(turn_speed,20),
+    turnNumberOfDegsCorrected(turn_speed,25),
     waitForCommandToFinish();
     Sleep(500);
     float dist1 = getDistanceSensorValue();
     Sleep(500);
-    turnNumberOfDegsCorrected(turn_speed,-40);
+    turnNumberOfDegsCorrected(turn_speed,-50);
     waitForCommandToFinish();
     Sleep(500);
     float dist2 = getDistanceSensorValue();
     Sleep(500);
-    turnNumberOfDegsCorrected(turn_speed,20);
+    turnNumberOfDegsCorrected(turn_speed,25);
     waitForCommandToFinish();
     Sleep(500);
     if (dist1 > 200 && dist2 > 200){
         printf("The object is movable !!!!!!!!!!!!!!!!!!\n");
+        //Sleep(10000);
         return MOVABLE;
     }
     else{
         printf("The object is non movable !!!!!!!!!!!!!!!!!!\n");
+        //Sleep(10000);
         return NON_MOVABLE;
     }/*
     int object = recognizeObject();
@@ -351,15 +363,15 @@ void checkIfCloseToWall(){
     float distanceRight;
     stopEngines();
     Sleep(1000);
-    turnNumberOfDegsCorrected(turn_speed,20);
+    turnNumberOfDegsCorrected(turn_speed,30);
     waitForCommandToFinish();
     distanceLeft = getDistanceSensorValue();
     Sleep(1000);
-    turnNumberOfDegsCorrected(turn_speed,-40);
+    turnNumberOfDegsCorrected(turn_speed,-60);
     waitForCommandToFinish();
     distanceRight = getDistanceSensorValue();
     Sleep(1000);
-    turnNumberOfDegsCorrected(turn_speed,20);
+    turnNumberOfDegsCorrected(turn_speed,30);
     waitForCommandToFinish();
     Sleep(1000);
 
