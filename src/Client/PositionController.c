@@ -70,7 +70,10 @@ void initPositionController(float initialHeading){
     START_SQUARE_Y = 1;
     current_square_x = 1;
     current_square_y = 1;
+    printf("This is the recived heading: %f\n",initialHeading);
     INITIAL_HEADING = initialHeading;
+    printf("Init heading value: %f\n",initialHeading);
+
     initMap(&map,3);
     POS_X = 7.5;
     POS_Y = 7.5;

@@ -8,6 +8,7 @@ int current_square_x;
 
 
 float getCurrentHeading();
+float getInitialHeading();
 void setCurrentHeading(float heading);
 void initPositionController(float initialHeading);
 void updateRobotPosition(double distance);

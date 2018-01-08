@@ -3,7 +3,7 @@
 
 float getDistanceSensorValue();
 float getCompassDegrees();
-float getGyroDegress();
+float getGyroDegrees();
 void calibrateGyro();
 
 int recognizeObject();

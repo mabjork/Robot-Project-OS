@@ -10,8 +10,7 @@ int getYPos();
 int getLeftEngineState();
 int getRightEngineState();
 
-void turnRight(int speed,int degrees);
-void turnLeft(int speed,int degrees);
+void turn2(int x);
 void runForever(int speed);
 void runToRelPos( int speed,double distance, int h);
 void discoverEngines();
