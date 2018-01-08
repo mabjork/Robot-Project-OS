@@ -2,6 +2,7 @@
 #define POSITIONCONTROLLER_H
 
 float getCurrentHeading();
+float getInitialHeading();
 void setCurrentHeading(float heading);
 void initPositionController(float initialHeading);
 void updateRobotPosition(double distance);

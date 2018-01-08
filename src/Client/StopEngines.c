@@ -8,7 +8,7 @@ int main(int argc, char const *argv[]) {
     printf("Ev3 initiated\n");
     initEngines();
     printf("Engines initiated\n");
-    discoverEngines();
+    //discoverEngines();
     stopEngines();
     return 0;
 

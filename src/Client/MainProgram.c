@@ -14,7 +14,7 @@
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 #define OBJECT_TO_CLOSE 250
-#define COLOR_CHECK_DISTANCE 50
+#define COLOR_CHECK_DISTANCE 100
 #define TIME_TO_CHECK_WALL_CLOSENES 4
 
 
@@ -69,16 +69,23 @@ int main(int argc, char const *argv[]) {
     return 0;
 }
 void test(){
+    turn2(90);
+    float init_deg = getInitialHeading();
+    float current = getGyroDegrees();
+    printf("Initial heading : %f\n",init_deg);
+    printf("Current heading : %f\n",current);
+    /*
     float value;
     float heading;
     while(1){
         //calibrateGyro();
-        value = getGyroDegress();
-        heading = getCompassDegrees();
+        value = getGyroDegrees();
+        //heading = getCompassDegrees();
         printf("Current gyro value %f\n",value);
         printf("Current compass degree %f\n",heading);
         Sleep(1000);
     }
+    */
     
 }
 
@@ -87,9 +94,12 @@ void init(){
     printf("Ev3 initiated\n");
     initEngines();
     printf("Engines initiated\n");
-    discoverEngines();
+    //discoverEngines();
     initSensors();
-    initPositionController(getCompassDegrees());
+    calibrateGyro();
+    float init_heading = getGyroDegrees();
+    printf("Setting heading : %f\n",init_heading);
+    initPositionController(init_heading);
     
 
 }
@@ -99,8 +109,8 @@ void startDiscovery(){
     regular_speed = max_speed * 0.2;
     turn_speed = 0.1 * max_speed;
     check_color_speed = 0.05 * max_speed;
-    turnLeft(turn_speed,90);
-    waitForCommandToFinish();
+    //turnNumberOfDegsCorrected(turn_speed,90);
+    //waitForCommandToFinish();
    
     
     time_since_last_surroundings_check = (unsigned)time(NULL);
@@ -114,7 +124,7 @@ void startDiscovery(){
 
         int is_running = isRunning();
         float distance = getDistanceSensorValue();
-        float current_heading = getCompassDegrees();
+        float current_heading = getGyroDegrees();
         //int gyro_value =getGyroDegress();
         printf("Distance sensor value: %f\n", distance);
         //printf("Time since last check %u\n",(time(NULL)-time_since_last_wall_closenes_check));
@@ -124,9 +134,11 @@ void startDiscovery(){
         if(distance < OBJECT_TO_CLOSE && is_running){
             printf("Object to close\n");
             measureAndUpdateTraveledDistance(regular_speed,&current_heading);
+
             gettimeofday(&tval_before, NULL);
-            whatIsObstacle();
+            int obstacle = whatIsObstacle();
             measureAndUpdateTraveledDistance(check_color_speed,&current_heading);
+
             gettimeofday(&tval_before, NULL);
             runDistance(-regular_speed, 1000);
             waitForCommandToFinish();
@@ -148,7 +160,7 @@ void startDiscovery(){
 
             if(time(NULL) - time_since_last_wall_closenes_check > TIME_TO_CHECK_WALL_CLOSENES){
                 measureAndUpdateTraveledDistance(regular_speed,&current_heading);
-                checkIfCloseToWall();
+                //checkIfCloseToWall();
                 time_since_last_wall_closenes_check = time(NULL);
                 gettimeofday(&tval_before, NULL);
 
@@ -158,7 +170,7 @@ void startDiscovery(){
             }
             
         }
-        //Sleep(1000);
+        //Sleep(100);
         
         
 
@@ -228,7 +240,7 @@ int whatIsObstacle(){
     turnNumberOfDegsCorrected(turn_speed,20);
     waitForCommandToFinish();
     Sleep(500);
-    if (dist1 > 150 && dist2 > 150){
+    if (dist1 > 200 && dist2 > 200){
         printf("The object is movable !!!!!!!!!!!!!!!!!!\n");
         return MOVABLE;
     }
@@ -295,6 +307,7 @@ int evaluateSurroundings(){
     }
     return current_highest;
 }
+/*
 void turnLeftAndContinue(int angle){
     stopEngines();
     Sleep(100);
@@ -312,7 +325,6 @@ void turnRightAndContinue(int angle){
     runForever(regular_speed);
 }
 
-
 void backAwayAndTurn(){
     int max_speed = getMaxSpeed();
     int regular_speed = max_speed * 0.5;
@@ -320,9 +332,9 @@ void backAwayAndTurn(){
     runTimed(regular_speed,1000);
     turnLeft(turn_speed,180);
 }
+*/
 
-
-
+/*
 void waitForTurnToComplete(){
     int stateL;
     int stateR;
@@ -333,7 +345,7 @@ void waitForTurnToComplete(){
     } while(stateL && stateR);
     
 }
-
+*/
 void checkIfCloseToWall(){
     float distanceLeft;
     float distanceRight;
