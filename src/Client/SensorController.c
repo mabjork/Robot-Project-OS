@@ -97,9 +97,12 @@ float getGyroDegrees(){
 void calibrateGyro(){
 
   uint8_t sn_gyro;
-  set_sensor_mode( sn_gyro, "GYRO-RATE" );
-  set_sensor_mode( sn_gyro, "GYRO-ANG" );
-  Sleep(100);
+  if ( ev3_search_sensor( LEGO_EV3_GYRO, &sn_gyro, 0 )) {
+      set_sensor_mode( sn_gyro, "GYRO-RATE" );
+      set_sensor_mode( sn_gyro, "GYRO-ANG" );
+  }
+  
+  //Sleep(100);
 
 }
 

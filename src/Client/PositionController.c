@@ -4,7 +4,6 @@
 #include <stdarg.h>
 #include <time.h>
 #include <math.h>
-#include "headers/PositionController.h"
 
 #define CalcHeading(deg) ((deg + HEADING) % 360)
 #define CalcSquareX (int)((POS_X)/SQUARE_WIDTH)
@@ -22,9 +21,13 @@ enum{
 double POS_X;
 double POS_Y;
 double REL_POS_X;
-double REL_POS_Y;;
+double REL_POS_Y;
+int current_square_x;
+int current_square_y;
 float INITIAL_HEADING;
 float HEADING;
+int START_SQUARE_X;
+int START_SQUARE_Y;
 
 struct PointQueue {
     int ** queue;
@@ -58,28 +61,42 @@ struct PointQueue point_queue;
 float getInitialHeading(){
     return INITIAL_HEADING;
 }
-void setCurrentHeading(float heading){
-    printf("Current heading is %f\n", heading);
-    HEADING = heading;
+void updateCurrentHeading(float change){
+    HEADING += change;
+    printf("Changed heading : %f\n",HEADING);
+    
+    if(HEADING < 0){
+        printf("Heading is negative\n");
+        float p1 = HEADING / 360;
+        printf("The float %f\n",p1);
+
+        int neg_mod = (int)abs(floorf(p1));
+        printf("This is the mod : %i\n",neg_mod);
+        HEADING += neg_mod * 360;
+    }else{
+        HEADING = (int)HEADING % 360;
+    }
+    printf("Current heading is %f\n",HEADING);
 }
 float getCurrentHeading(){
     return HEADING;
 }
-void initPositionController(float initialHeading){
-    START_SQUARE_X = 1;
-    START_SQUARE_Y = 1;
-    current_square_x = 1;
-    current_square_y = 1;
+void initPositionController(float initialHeading,int start_x,int start_y){
+    START_SQUARE_X = start_x;
+    START_SQUARE_Y = start_y;
+    current_square_x = start_x;
+    current_square_y = start_y;
     printf("This is the recived heading: %f\n",initialHeading);
     INITIAL_HEADING = initialHeading;
+    HEADING = initialHeading;
     printf("Init heading value: %f\n",initialHeading);
 
-    initMap(&map,3);
-    POS_X = 7.5;
-    POS_Y = 7.5;
+    initMap(&map,current_square_x+2,current_square_y+2);
+    POS_X = current_square_x * SQUARE_WIDTH + SQUARE_WIDTH/2;
+    POS_Y = current_square_y * SQUARE_HEIGHT + SQUARE_HEIGHT/2;
     REL_POS_X = 0;
     REL_POS_Y = 0;
-    updateMap(1,1,'S');
+    updateMap(current_square_x,current_square_y,'S');
     printMatrix(&map);
     initQueue(9);
 }
@@ -88,18 +105,22 @@ void updateRobotPosition(double distance){
     float rad = (HEADING-INITIAL_HEADING) * M_PI / 180;
     double dx;
     double dy;
-    if(HEADING <= 90){
-        dx = fabs(distance * cos(rad));
-        dy = fabs(distance * sin(rad));
-    }else if(HEADING <= 180) {
-        dx = -fabs(distance * cos(rad));
-        dy = fabs(distance * sin(rad));
-    }else if (HEADING <= 270){
-        dx = -fabs(distance * cos(rad));
-        dy = -fabs(distance * sin(rad));
+    if(HEADING < 90){
+        printf("Heading is less then 90\n");
+        dy = fabs(distance * cos(rad));
+        dx = fabs(distance * sin(rad));
+    }else if(HEADING < 180) {
+        printf("Heading is less then 180\n");
+        dy = fabs(distance * cos(rad));
+        dx = -fabs(distance * sin(rad));
+    }else if (HEADING < 270){
+        printf("Heading is less then 270\n");
+        dy = -fabs(distance * cos(rad));
+        dx = -fabs(distance * sin(rad));
     }else{
-        dx = fabs(distance * cos(rad));
-        dy = -fabs(distance * sin(rad));
+        printf("Heading is less then 360\n");
+        dy = -fabs(distance * cos(rad));
+        dx = fabs(distance * sin(rad));
     }
     REL_POS_X += dx;
     REL_POS_Y += dy;
@@ -110,7 +131,7 @@ void updateRobotPosition(double distance){
     int square_y = CalcSquareY;//(POS_Y);
     
     if(square_x != current_square_x || square_y != current_square_y){
-        //updateMap(current_square_x,current_square_y, 'D');
+        updateMap(current_square_x,current_square_y, 'D');
     }
     
     if(square_x != current_square_x){
@@ -120,7 +141,7 @@ void updateRobotPosition(double distance){
         if(current_square_x < 0){
             printf("Adding col to start of map!\n");
             for(int i = 0;i<abs(current_square_x);i++){
-                //addColLower(&map);
+                addColLower(&map);
             }
             POS_X += abs(current_square_x)*SQUARE_WIDTH;
             current_square_x = 0;
@@ -131,7 +152,7 @@ void updateRobotPosition(double distance){
             int diff = current_square_x - map.width + 1;
             for(int i = 0; i<diff;i++){
                 printf("Adding col to end of map!\n");
-                //addCol(&map);
+                addCol(&map);
             }
         }
         
@@ -143,7 +164,7 @@ void updateRobotPosition(double distance){
         if(current_square_y < 0){
             printf("Adding row to start of map!\n");
             for(int i = 0;i<abs(current_square_y);i++){
-                //addRowLower2(&map);
+                addRowLower2(&map);
             }
             POS_Y += abs(current_square_y)*SQUARE_HEIGHT;
             current_square_y = 0;
@@ -154,20 +175,21 @@ void updateRobotPosition(double distance){
             int diff = current_square_y - map.height + 1;
             for(int i = 0; i<diff;i++){
                 printf("Adding row to end of map!\n");
-                //addRow(&map);
+                addRow(&map);
             }
         }
     }
     printf("Current pos is %lf,%lf\n",POS_X,POS_Y);
     
-    //updateMap(current_square_x,current_square_y,'R');
-    //printMatrix(&map);
+    updateMap(current_square_x,current_square_y,'R');
+    printMatrix(&map);
 }
 
 void updateMap(int x,int y,char value){
     printf("Map height: %i, Map width: %i\n",map.height,map.width);
     printf("x is: %i, y is: %i\n",x,y);
     if(x < 0 || y < 0 || map.width < x || map.height < y)return;
+    //y = map.height - 1 - y;
     printf("Updating map\n");
     struct Array *rows = map.rows;
     struct Array row = rows[y];
@@ -178,7 +200,31 @@ void updateMap(int x,int y,char value){
     //printMatrix(&map);
     
 }
+void getSquareInFront(int distance,int * x,int *y){
+    float rad = (HEADING-INITIAL_HEADING) * M_PI / 180;
+    double dx;
+    double dy;
+    if(HEADING <= 90){
+        dx = -fabs(distance * cos(rad));
+        dy = -fabs(distance * sin(rad));
+    }else if(HEADING <= 180) {
+        dx = -fabs(distance * cos(rad));
+        dy = fabs(distance * sin(rad));
+    }else if (HEADING <= 270){
+        dx = fabs(distance * cos(rad));
+        dy = fabs(distance * sin(rad));
+    }else{
+        dx = fabs(distance * cos(rad));
+        dy = -fabs(distance * sin(rad));
+    }
+    double pos_x = POS_X + dx;
+    double pos_y = POS_Y + dy;
+    int sq_x = (int)pos_x/SQUARE_WIDTH;
+    int sq_y = (int)pos_y/SQUARE_HEIGHT;
 
+    *x = sq_x;
+    *y = sq_y;
+}
 void initQueue(size_t initialSize){
     point_queue.queue = (int *)malloc(initialSize * sizeof(int));
     point_queue.used = 0;
@@ -234,11 +280,11 @@ void freeArray(struct Array *a) {
   a->array = NULL;
   a->used = a->size = 0;
 }
-void initMap(struct Map *m,size_t initialHeight){
-    m->rows = (struct Array *)malloc(initialHeight * sizeof(struct Array));
+void initMap(struct Map *m,size_t initialWidth,size_t initialHeight){
+    m->rows = (struct Array *)malloc((initialHeight*initialWidth) * sizeof(struct Array));
     m->height = initialHeight;
-    m->width = initialHeight;
-    for(int i = 0; i<initialHeight; i++){
+    m->width = initialWidth;
+    for(int i = 0; i<initialWidth; i++){
         struct Array row;
         initArray(&row,m->width);
         m->rows[i] = row;
@@ -503,6 +549,14 @@ int main(int argc, char const *argv[]) {
     
 }
 */
+/*
+int main(int argc, char const *argv[]) {
+    initPositionController(90,5,3);
+    updateRobotPosition(5);
+    updateCurrentHeading(90);
+    updateRobotPosition(5);
+}
+*/
 
 
 
@@ -512,7 +566,7 @@ void printMatrix(struct Map *m){
     struct Array *rows = m-> rows;
     printf("Map height %i\n",m->height);
     
-    for(int i = 0;i<m->height;i++){
+    for(int i = m->height-1;i != 0;i--){
         row = rows[i];
         
         for(int j = 0;j < m->width; j++){

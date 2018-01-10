@@ -37,6 +37,9 @@ uint8_t sn_engineLR[3];
 uint8_t sn_engineM;
 uint8_t sn_engineLRM[4];
 
+pthread_t engine_tid;
+pthread_mutex_t engine_lock;
+
 enum {
     RUNNING,
     STOPPED
@@ -142,8 +145,12 @@ void runDistance(int speed,double distance){
     multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_TO_REL_POS );
 }
 
-void runForever( int speed)
+void *runForever(int speed)
 {
+    
+    printf("Should run at this speed: %i\n",speed);
+    multi_set_tacho_stop_action_inx( sn_engineLR, TACHO_BRAKE );
+    multi_set_tacho_polarity_inx( sn_engineLR, TACHO_NORMAL);
     set_tacho_speed_sp( sn_engineL, speed );
     set_tacho_speed_sp( sn_engineR, speed );
     multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
@@ -186,27 +193,40 @@ void runTimed( int speed, int mseconds )
     }
     return;
 }
-/*
-void turnRight(int speed,int degrees){
-    int deg1 = degToDist(degrees);
-    int deg2 = degToDist(-degrees);
-    set_tacho_speed_sp( motor[ L ], speed );
-    set_tacho_speed_sp( motor[ R ], -speed );
-    set_tacho_position_sp( motor[ L ], deg1 );
-    set_tacho_position_sp( motor[ R ], deg2 );
-    multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
+void backAwayTimed(int speed,int mseconds){
+    int sleep_time = 100; // [ms]
+    multi_set_tacho_stop_action_inx( sn_engineLR, TACHO_BRAKE );
+    multi_set_tacho_polarity_inx( sn_engineLR, TACHO_INVERSED);
+    multi_set_tacho_speed_sp( sn_engineLR, speed );
+    multi_set_tacho_time_sp( sn_engineLR, mseconds );
+
+    if ( mseconds > 0 ) {
+        int initial_angle = getGyroDegrees();
+        int current_angle = initial_angle;
+        //int mseconds = seconds * 1000;
+        int error;
+        multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_TIMED );
+
+        // TODO: REPLACE THIS WITH A PROPER PID CONTROLER!
+        while (mseconds > 0){
+            current_angle = getGyroDegrees();
+            error = current_angle-initial_angle;
+            if (error > 1 || error < -1) {
+                set_tacho_speed_sp(sn_engineR, speed+(error*2));
+                set_tacho_speed_sp(sn_engineL, speed-(error*2));
+                multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_TIMED ); // TODO: FIX TIMED!
+            }
+            mseconds-=sleep_time;
+            Sleep(sleep_time);        
+        }
+        multi_set_tacho_command_inx( sn_engineLR, TACHO_STOP );
+    } else {
+        multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
+    }
+    return;
+
 }
 
-void turnLeft(int speed,int degrees){
-    int deg1 = degToDist(degrees);
-    int deg2 = degToDist(-degrees);
-    set_tacho_speed_sp( motor[ L ], -speed );
-    set_tacho_speed_sp( motor[ R ], speed );
-    set_tacho_position_sp( motor[ L ], deg2 );
-    set_tacho_position_sp( motor[ R ], deg1 );
-    multi_set_tacho_command_inx( motor, TACHO_RUN_TO_REL_POS );
-}
-*/
 int getMaxSpeed(){
     return max_speed;
 }
@@ -525,6 +545,14 @@ void adjust_speed_by(int err){
     set_tacho_speed_sp(sn_engineL, max_speed-(err*1));
     multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
 }
+void runForeverCorrected(){
+    pthread_mutex_init(&engine_lock, NULL);
+
+    pthread_mutex_unlock(&engine_lock);
+
+    pthread_create(&position_tid, NULL, runForever, NULL);
+}
+
 
 
 
