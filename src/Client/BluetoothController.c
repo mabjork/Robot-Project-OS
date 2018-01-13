@@ -11,9 +11,14 @@
 #include "headers/BluetoothController.h"
 #include "headers/PositionController.h"
 
+<<<<<<< HEAD
 #define SERV_ADDR "00:1a:7d:da:71:06" //"9c:ad:97:b1:a7:d2" /*Halvor PC BT*/ /* 38:ca:da:e9:90:6c Halvor Iphone BT */ 
 /* ROBOT BT "00:17:e9:f5:c9:dd" */ /*OS SERVER "dc:53:60:ad:61:90"*/ /*BT SERVER "00:1a:7d:da:71:06"*/
 
+=======
+#define SERV_ADDR  "9c:ad:97:b1:a7:d2" /*Halvor PC BT*/ /* 38:ca:da:e9:90:6c Halvor Iphone BT */ 
+/* ROBOT BT "00:17:e9:f5:c9:dd" */ /*OS SERVER "dc:53:60:ad:61:90"*/ /*BT SERVER "00:1a:7d:da:71:06*/
+>>>>>>> master
 #define TEAM_ID 14
 
 #define MSG_ACK 0
@@ -27,8 +32,11 @@
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
 int s;
+bool mooving = false;x
 uint16_t msgId = 0;
-void btcommunication() {
+
+/* START BLUETOOTH CONNECTION */
+int bt_connect() {
   struct sockaddr_rc addr = { 0 };
   int status;
 
@@ -44,145 +52,162 @@ void btcommunication() {
   status = connect(s, (struct sockaddr *)&addr, sizeof(addr));
 
   /* if connected */
-  if( status == 0 ) {
-    char string[58];
-
-    /* Wait for START message */
-    read_from_server (s, string, 9);
-    if (string[4] == MSG_START) {
-      printf ("Received start message!\n");
+  if( status != 0 ) {
+    printf("Error: %d\n", errno);
     }
-
-    //call some function tocommunicate here, like robot(); in robotclient.c
-    //positionprint();
-    init();
-    startDiscovery(); 
-    stopmessage(); // Has to be added to startDiscovery, it's never called now
-    
-    //close (s);
-
-    sleep (5);
-
-  } else {
-    fprintf (stderr, "Failed to connect to server...\n");
-    sleep (2);
-    exit (EXIT_FAILURE);
-  }
-
-  //close(s);
-  return 0;
+  return status;
 }
 
-void positionprint () {
-  char string[58];
-  char type;
-  int x1, x2, y1, y2;
-  printf ("I'm navigating...\n");
+/* SEND ACK MESSAGE */
+ssize_t bt_ack(uint16_t ackId, uint8_t dest, uint8_t statusCode){
+    char string[58];
+    printf("Sending ACK\n");
+    *((uint16_t *) string) = msgId++;
+    string[2] = TEAM_ID;
+    string[3] = dest;
+    string[4] = MSG_ACK;
+    *((uint16_t *) string+5) = ackId;
+    string[7] = statusCode;
+    return write(s, string, 8);
+}
 
-  srand(time(NULL));
-  /* Send 1 position message */
-  int i, j;
-  for (i=0; i<1; i++){
+/* WAIT FOR START MESSAGE */
+int bt_wait_startmsg(char * msg){
+    if (msg[4] == MSG_START) {
+        printf ("Received start message!\n");
+        moving = true;
+        /* Start Driving */
+        startDiscovery();
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+/* WAIT FOR STOP MESSAGE */
+int bt_wait_stopmsg(char * msg) {
+    if (msg[4] == MSG_STOP) {
+        printf ("Received Stop message!\n");
+        bt_close();
+        stopEngines();
+        //position_stop(); STOP SENDING POSITION OR SOMETHING
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+/* WAIT FOR KICK MESSAGE */
+int bt_wait_kick(char * msg){
+
+    if (msg[4] == MSG_KICK) {
+        printf ("Received Kick message!\n");
+        bt_close();
+        stopEngines();
+        //position_stop(); STOP SENDING POSITION OR SOMETHING
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+/* Send a POSITION message to the server */
+ssize_t bt_position(){
+    char string[58];
+    float x, y;
+    int heading;
+    int16_t x1, y1;
+    //get_position_and_heading(&x, &y, &heading); 
+    x1 = (int16_t)(current_square_x); //- START_SQUARE_X) ;
+    y1 = (int16_t)(current_square_y); //- START_SQUARE_Y);
+    printf("Sending X: %d, Y:%d\n", x1, y1);
     *((uint16_t *) string) = msgId++;
     string[2] = TEAM_ID;
     string[3] = 0xFF;
     string[4] = MSG_POSITION;
-    string[5] = i;                  //(START_SQUARE_X - current_square_x);        //i;          /* x */
-    string[6] = 0x00;
-    string[7] = i;                    //(START_SQUARE_Y - current_square_y);                //i;              /* y */
-    string[8]= 0x00;
-    write(s, string, 9);
-    Sleep( 1000 );
-  }
+    string[5] = (uint8_t)(x1);
+    string[6] = (uint8_t)(x1>>8);
+    string[7] = (uint8_t)(y1);
+    string[8]= (uint8_t)(y1>>8);
+    return write(s, string, 9);
+    //Sleep( 1000 );
 }
 
+/* MISSING */
+/* MAPDATA */
+/* MAPDONE */
+
+/* OBSTACLE */ //Possible to drop val, and just use 0, if we only drop obstacles
+ssize_t bt_obstacle(uint8_t val){
+    char string[58];
+    float x, y;
+    //int heading;
+    int16_t x1, y1;
+    //get_position_and_heading(&x, &y, &heading); 
+    x1 = (int16_t)(current_square_x - START_SQUARE_X) ;
+    y1 = (int16_t)(current_square_y - START_SQUARE_Y);
+    printf("BT sending obstacle position\n");
+    *((uint16_t *) string) = msgId++;
+    string[2] = TEAM_ID;
+    string[3] = 0xFF;
+    string[4] = MSG_OBSTACLE;
+    string[5] = val;
+    string[6] = (uint8_t)(x1);
+    string[7] = (uint8_t)(x1>>8);
+    string[8] = (uint8_t)(y1);
+    string[9] = (uint8_t)(y1>>8);
+    return write(s, string, 10);
+}
+
+/* READ FROM SERVER */
 int read_from_server (int sock, char *buffer, size_t maxSize) {
   int bytes_read = read (sock, buffer, maxSize);
-
   if (bytes_read <= 0) {
     fprintf (stderr, "Server unexpectedly closed connection...\n");
-    close (s);
+    bt_close (s);
     exit (EXIT_FAILURE);
   }
-
   printf ("[DEBUG] received %d bytes\n", bytes_read);
-
   return bytes_read;
 }
 
-void stopmessage() {
-  char string[58];
-  char type;
-  int x1, x2, y1, y2;
-  printf("I'm waiting for the stop message");
-  while(1){
-    //Wait for stop message
-    read_from_server (s, string, 58);
-    type = string[4];
-    if (type ==MSG_STOP){
-      return; 
+/* CHECK MESSAGE */
+int bt_check(){
+    ssize_t nbyte;
+    char msg[58]; 
+
+    /* Read from server */
+    //OBS: Check if this part works, might have to change read_from_server to read
+    nbyte = read_from_server (s, msg, 9);
+    printf("BT RECIEVED message type: %d of size %d\n", (int)msg[4], nbyte);
+    else{
+        switch(msg[4]) {
+            //case MSG_ACK :
+            //    bt_ack(msg);
+            //    break;
+            case MSG_START :
+                bt_wait_startmsg(msg);
+                break;
+            case MSG_STOP :
+                bt_wait_stopmsg(msg);
+                break;
+            case MSG_KICK :
+                bt_wait_kick(msg);
+                break;
+            //case MSG_BALL :
+            //    bt_recv_ball(msg);
+            //    break;
+            default :
+                printf("BT: Invalid message\n");
+                break;
+        }
     }
-  }
+    return nbyte;
 }
 
 //void write_to_server (struct team *t, const char *buf, size_t size) {
 //    write (t->sock, buf, size);
 //}
-
-
-//POSITION messages must be sent by robots every 2 seconds. This message is used to advertise the expected position of the robot.
-void positionmessage(){
-  char string[58];
-  char type;
-  int x1, x2, y1, y2;
-  int currentpos_x;
-  int currentpos_y;
-  //currentpos_x = START_SQUARE_X - current_square_x;
-  //currentpos_y = START_SQUARE_Y - current_square_y;
-  srand(time(NULL));
-  /* Send position message */
-  int i, j;
-  for (i=0; i<1; i++){
-	*((uint16_t *) string) = msgId++;
-  string[2] = TEAM_ID;
-  string[3] = 0xFF;
-  string[4] = MSG_POSITION;
-  string[5] = current_square_x;//currentpos_x;          /* x */
-  string[6] = 0x00;
-  string[7] = current_square_y;//currentpos_y;              /* y */
-  string[8]= 0x00;
-  write(s, string, 9);
-  Sleep( 1000 );
-  }
-}
-
-/* Send a POSITION message to the server */
-ssize_t bt_send_position(){
-    char string[58];
-    float x, y;
-    int heading;
-    int16_t x1, y1;
-
-    //get_position_and_heading(&x, &y, &heading); 
-    x1 = (int16_t)(current_square_x); //- START_SQUARE_X) ;
-    y1 = (int16_t)(current_square_y); //- START_SQUARE_Y);
-    printf("Sending X: %d, Y:%d\n", x1, y1);
-
-    // Remember to increment msgId
-    *((uint16_t *) string) = msgId++;
-    string[2] = TEAM_ID;
-    string[3] = 0xFF;
-    string[4] = MSG_POSITION;
-    // Little endian representation
-    string[5] = (uint8_t)(x1);
-    string[6] = (uint8_t)(x1>>8);
-    string[7] = (uint8_t)(y1);
-    string[8]= (uint8_t)(y1>>8);
-
-    /* Return number of bytes written */
-    return write(s, string, 9);
-    //Sleep( 1000 );
-}
 
 /*
 void get_position_and_heading(float * x, float *y, int * heading){
@@ -193,3 +218,32 @@ void get_position_and_heading(float * x, float *y, int * heading){
     pthread_mutex_unlock(&position_mutex);
 }
 */
+
+int bt_close(){
+    bt_stop();
+    return close(s);
+}
+
+/* THREAD */
+bool bt_terminate = false;
+
+void *bt_send(){
+    while(!bt_terminate){
+        if(moving)
+            bt_position();
+        sleep(2);
+    }
+    return NULL;
+}
+
+pthread_t t;
+
+void bt_transmit(){
+    bt_term = false;
+    pthread_create(&t, NULL, bt_send, NULL);
+}
+
+void bt_stop(){
+    bt_terminate = true;
+    pthread_join(t, NULL);
+}
