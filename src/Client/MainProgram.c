@@ -62,7 +62,27 @@ float distances_around_robot[4];
 struct timeval tval_before, tval_after, tval_result;
 
 int main(int argc, char const *argv[]) {
-    btcommunication();
+    //signal(SIGINT, intHandler);
+    if ( ev3_init() == -1 ) return ( 1 );
+    //engine_init();
+    //sn_init();
+    /* if connected */  
+    if( bt_connect() == 0 ) {
+        printf("Connected!\n");
+        bt_transmit();
+        while(1){
+            bt_check();
+        }
+    }
+    else {
+        fprintf (stderr, "Failed to connect to server...\n");
+        sleep (2);
+        exit (EXIT_FAILURE);
+    }
+    engine_reset();
+}    
+    bt_connect();
+    bt_wait_startmsg();
     //init();
     //startDiscovery();
     //stopmessage();
