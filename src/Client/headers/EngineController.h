@@ -27,4 +27,6 @@ void turnToDegCorrected(int speed,float target);
 void turnNumberOfDegsCorrected(int turn_speed,int degree);
 void backAwayTimed(int speed,int mseconds);
 void runDistance(int speed,double distance);
+void raiseArm();
+void lowerArm();
 #endif

@@ -56,23 +56,26 @@ int recognizeObject(){
   obj_color = getColor();
   //Black color, recognized as non-moveable obj
   if ( obj_color == 1){
-    printf( "Black detected. This is a non-moveable object.");
+    printf( "Black detected. This is a non-moveable object.\n");
     return 1;
   }
 
   //Red color detected, recognized as moveable obj
   else if ( obj_color == 5){
-    printf( "Red detected. This is a moveable object.");
+    printf( "Red detected. This is a moveable object.\n");
     return 2;
   }
 
   else if( obj_color == 2){
-    printf("Blue detected. This is a moveable object.");
+    printf("Blue detected. This is a moveable object.\n");
     return 2;
   }
   
   //Recognizes nothing. This may be changed
-  else { return 0; }
+  else { 
+    printf("No color detected.\n");
+    return 0; 
+    }
 
 }
 

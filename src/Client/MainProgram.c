@@ -8,6 +8,7 @@
 #include "headers/EngineController.h"
 #include "headers/SensorController.h"
 #include "headers/PositionController.h"
+#include "headers/ArmController.h"
 #include "ev3.h"
 #include <math.h>
 #include "headers/BluetoothController.h"
@@ -66,8 +67,7 @@ struct timeval tval_before, tval_after, tval_result;
 int main(int argc, char const *argv[]) {
     //btcommunication();
     init();
-    //turnAndContinue();
-    //thread_test();
+    initArm();
     startDiscovery();
     findLastPoints();
     goBackToStart();
@@ -136,6 +136,7 @@ void test(){
 
     
 }
+
 
 void init(){
     if ( ev3_init() == -1 ) return ( 1 );
@@ -292,6 +293,11 @@ int whatIsObstacle(){
     Sleep(50);
     turnNumberOfDegsCorrected(turn_speed,25);
     Sleep(50);
+    int object = recognizeObject();
+    if(object == 2){
+        printf("The object is movable !!!!!!!!!!!!!!!!!!\n");
+        return MOVABLE;
+    }
     if (dist1 > 200 && dist2 > 200){
         printf("The object is movable !!!!!!!!!!!!!!!!!!\n");
         return MOVABLE;
@@ -299,16 +305,9 @@ int whatIsObstacle(){
     else{
         printf("The object is non movable !!!!!!!!!!!!!!!!!!\n");
         return NON_MOVABLE;
-    }/*
-    int object = recognizeObject();
-    if(object == 1){
-        return NON_MOVABLE;
-    }else if(object == 2){
-        return MOVABLE;
-    }else{
-        return OTHER;
     }
-    */
+
+    
 }
 void findCenterOfObject(){
     while(1){

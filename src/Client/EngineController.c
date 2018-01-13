@@ -48,7 +48,6 @@ enum {
 };
 
 
-
 int initEngines(){
     if (!ev3_tacho_init()){
         perror("ev3_tacho_init() failed! Aborting...");
@@ -239,16 +238,17 @@ void waitForCommandToFinish(){
 
 
 void raiseArm(){
-    int degree = DEGREE_TO_COUNT(90);
-    set_tacho_speed_sp( arm, max_speed * 0.2);
-    set_tacho_position_sp( arm,degree);
-    set_tacho_command_inx( arm, TACHO_RUN_TO_REL_POS );
+    int degree = DEGREE_TO_COUNT(60);
+    set_tacho_speed_sp( sn_engineM, max_speed * 0.25);
+    set_tacho_position_sp( sn_engineM,degree);
+    set_tacho_command_inx( sn_engineM, TACHO_RUN_TO_REL_POS );
 }
+
 void lowerArm(){
-    int degree = DEGREE_TO_COUNT(-90);
-    set_tacho_speed_sp( arm, max_speed * 0.2);
-    set_tacho_position_sp( arm,degree);
-    set_tacho_command_inx( arm, TACHO_RUN_TO_REL_POS );
+    int degree = DEGREE_TO_COUNT(-60);
+    set_tacho_speed_sp( sn_engineM, max_speed * 0.01);
+    set_tacho_position_sp( sn_engineM,degree);
+    set_tacho_command_inx( sn_engineM, TACHO_RUN_TO_REL_POS );
 }
 
  
