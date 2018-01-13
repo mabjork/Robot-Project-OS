@@ -6,4 +6,7 @@ float getCompassDegrees();
 float getGyroDegrees();
 void calibrateGyro();
 
+int recognizeObject();
+
+
 #endif

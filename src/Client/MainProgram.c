@@ -8,6 +8,7 @@
 #include "headers/EngineController.h"
 #include "headers/SensorController.h"
 #include "headers/PositionController.h"
+#include "headers/ArmController.h"
 #include "ev3.h"
 #include <math.h>
 #include "headers/BluetoothController.h"
@@ -237,19 +238,24 @@ int whatIsObstacle(){
             break;
         }
     }
-    turnNumberOfDegsCorrected(turn_speed,25),
+    turnNumberOfDegsCorrected(turn_speed,30),
     waitForCommandToFinish();
     Sleep(500);
     float dist1 = getDistanceSensorValue();
     Sleep(500);
-    turnNumberOfDegsCorrected(turn_speed,-50);
+    turnNumberOfDegsCorrected(turn_speed,-60);
     waitForCommandToFinish();
     Sleep(500);
     float dist2 = getDistanceSensorValue();
     Sleep(500);
-    turnNumberOfDegsCorrected(turn_speed,25);
+    turnNumberOfDegsCorrected(turn_speed,30);
     waitForCommandToFinish();
     Sleep(500);
+    int object = recognizeObject();
+    if(object == 2){
+        printf("The object is movable !!!!!!!!!!!!!!!!!!\n");
+        return MOVABLE;
+    }
     if (dist1 > 200 && dist2 > 200){
         printf("The object is movable !!!!!!!!!!!!!!!!!!\n");
         //Sleep(10000);
@@ -259,16 +265,9 @@ int whatIsObstacle(){
         printf("The object is non movable !!!!!!!!!!!!!!!!!!\n");
         //Sleep(10000);
         return NON_MOVABLE;
-    }/*
-    int object = recognizeObject();
-    if(object == 1){
-        return NON_MOVABLE;
-    }else if(object == 2){
-        return MOVABLE;
-    }else{
-        return OTHER;
     }
-    */
+
+    
 }
 
 
