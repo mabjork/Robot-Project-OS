@@ -66,8 +66,7 @@ int main(int argc, char const *argv[]) {
     //btcommunication();
     init();
     initArm();
-    //startDiscovery();
-    testReleaseMoveable();
+    startDiscovery();
     //stopmessage();
     return 0;
 }
@@ -92,12 +91,7 @@ void test(){
     */
     
 }
-void testReleaseMoveable(){
-    printf("Ready to release movable.");
-    armReleasingMovable();
-    printf("Movable is released.");
 
-}
 
 void init(){
     if ( ev3_init() == -1 ) return ( 1 );
