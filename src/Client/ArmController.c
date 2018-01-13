@@ -32,7 +32,7 @@ enum {
 
 void initArm(){
     pos = RAISED;
-    status = NOBALL;
+    status = HASBALL;
 }
 
 int checkIfMovable(){
@@ -56,21 +56,21 @@ int checkIfCloseEnough(){
 }
 
 
-
-void driveWithBall(){
-
-}
-
 void armCapturingMovable(){
     lowerArm();
     status = HASBALL;
-    pos = LOWERED;
+    pos = RAISED;
 }
 
 void armReleasingMovable(){
-    raiseArm();
-    status = NOBALL;
-    pos = RAISED;
+    if (pos == RAISED && status == HASBALL):
+        lowerArm();
+        status = NOBALL;
+        pos = LOWERED;
+        Sleep(1000);
+        raiseArm();
+        pos = RAISED;
+
 
 }
 
