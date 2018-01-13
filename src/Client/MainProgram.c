@@ -65,6 +65,7 @@ struct timeval tval_before, tval_after, tval_result;
 int main(int argc, char const *argv[]) {
     //btcommunication();
     init();
+    initArm();
     //startDiscovery();
     testReleaseMoveable();
     //stopmessage();
