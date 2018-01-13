@@ -63,13 +63,14 @@ void armCapturingMovable(){
 }
 
 void armReleasingMovable(){
-    if (pos == RAISED && status == HASBALL):
+    if (pos == RAISED && status == HASBALL){
         lowerArm();
         status = NOBALL;
         pos = LOWERED;
         Sleep(1000);
         raiseArm();
         pos = RAISED;
+    }
 
 
 }

@@ -65,7 +65,8 @@ struct timeval tval_before, tval_after, tval_result;
 int main(int argc, char const *argv[]) {
     //btcommunication();
     init();
-    startDiscovery();
+    //startDiscovery();
+    testReleaseMoveable();
     //stopmessage();
     return 0;
 }
@@ -89,6 +90,12 @@ void test(){
     }
     */
     
+}
+void testReleaseMoveable(){
+    printf("Ready to release movable.");
+    armReleasingMovable();
+    printf("Movable is released.");
+
 }
 
 void init(){
