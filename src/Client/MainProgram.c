@@ -61,17 +61,48 @@ int discovering;
 //char surroundins_map[MAP_HEIGHT][MAP_WIDTH];
 float distances_around_robot[4];
 
-struct timeval tval_before, tval_after, tval_result;sn_get_gyro_val()
+struct timeval tval_before, tval_after, tval_result;
 
 int main(int argc, char const *argv[]) {
     //btcommunication();
     init();
+    next_point_test();
     //wall_close_test();
     //test();
     //recognize_test();
-    startDiscovery();
+    //startDiscovery();
+    //thread_test();
+    //printf("Running forever\n");
+    //runForeverCorrected(regular_speed);
+    //Sleep(10000);
+    //stopEngines();
     //stopmessage();
+    //turnNumberOfDegsCorrected(turn_speed,180);
+    //float current_change = getGyroDegrees();
+    //printf("Current change is %f\n",current_change);
+    //float heading_diff = current_change- last_gyro_read;
+    //updateCurrentHeading(heading_diff);
+    //printf("Current heading is %f\n",HEADING);
+    //turnToInitialHeading();
     exit(0);
+}
+void next_point_test(){
+    last_gyro_read = getGyroDegrees();
+    goToNextUndiscoveredPoint();
+    float current_heading = getGyroDegrees();
+    float heading_diff = current_heading - last_gyro_read;
+    printf("Heading diff %f\n",heading_diff);
+    updateCurrentHeading(-heading_diff);
+    turnToInitialHeading();
+}
+void thread_test(){
+    runForeverCorrected(regular_speed);
+    Sleep(10000);
+    stopEngines();
+    Sleep(5000);
+    runForeverCorrected(regular_speed);
+    Sleep(10000);
+    stopEngines();
 }
 void wall_close_test(){
     checkIfCloseToWall();
@@ -88,7 +119,7 @@ void recognize_test(){
 }
 void test(){
     turn2(90);
-    float init_deg = getInitialHeading();
+    float init_deg = INITIAL_HEADING;
     float current = getGyroDegrees();
     printf("Initial heading : %f\n",init_deg);
     printf("Current heading : %f\n",current);
@@ -100,7 +131,7 @@ void test(){
     printf("Current heading : %f\n",current);
     Sleep(1000);
     turn2(90);
-    init_deg = getInitialHeading();
+    init_deg = INITIAL_HEADING;
     current = getGyroDegrees();
     printf("Initial heading : %f\n",init_deg);
     printf("Current heading : %f\n",current);
@@ -142,15 +173,19 @@ void initTimes(){
     gettimeofday(&tval_before, NULL);
 }
 void startDiscovery(){
-    //goToNextUndiscoveredPoint();
+    
     //bt_send_position();
-    runForever(regular_speed);
+    last_gyro_read = getGyroDegrees();
+    goToNextUndiscoveredPoint();
+    //runForeverCorrected(regular_speed);
     while(discovering){
         int is_running = isRunning();       
         float distance = getDistanceSensorValue();
         float current_heading = getGyroDegrees();
+        float heading_diff = current_heading- last_gyro_read;
+        last_gyro_read = current_heading;
         if(fabs(current_heading) >= 1){
-            calibrateGyro();
+            //calibrateGyro();
         }
         printf("Distance sensor value: %f\n", distance);
         //printf("Time since last check %u\n",(time(NULL)-time_since_last_wall_closenes_check));
@@ -158,36 +193,36 @@ void startDiscovery(){
         
         if(distance < OBJECT_TO_CLOSE && is_running){
             printf("Object to close\n");
-            measureAndUpdateTraveledDistance(regular_speed,&current_heading);
+            measureAndUpdateTraveledDistance(regular_speed,&heading_diff);
             int obstacle = whatIsObstacle();
+            float close_dist = getDistanceSensorValue();
+            setMapPointValue(obstacle,close_dist);
+            gettimeofday(&tval_before, NULL);
             backAwayTimed(regular_speed,1500);
-            //gettimeofday(&tval_before, NULL);
-            //runDistance(-regular_speed, 1000);
-            //waitForCommandToFinish();
-            //measureAndUpdateTraveledDistance(-regular_speed,&current_heading);
-            //evaluatePosition();
+            measureAndUpdateTraveledDistance(-regular_speed,&current_heading);
             turnNumberOfDegsCorrected(turn_speed,90);
-            runForever(regular_speed);
+            checkIfCloseToWall();
+            runForeverCorrected(regular_speed);
             gettimeofday(&tval_before, NULL);
             time_since_last_wall_closenes_check = time(NULL);
         }
         else if(isArrivedAtPoint() == 1){
             printf("LOLOLOLOLOLOLOL should not happen \n");
-            //measureAndUpdateTraveledDistance(regular_speed,&current_heading);
-            //turnToInitialHeading();
+            measureAndUpdateTraveledDistance(regular_speed,&current_heading);
+            turnToInitialHeading();
             //checkSouroundings();
-            //goToNextUndiscoveredPoint();
+            goToNextUndiscoveredPoint();
         }
         else{
 
             if(time(NULL) - time_since_last_wall_closenes_check > TIME_TO_CHECK_WALL_CLOSENES){
-                measureAndUpdateTraveledDistance(regular_speed,&current_heading);
+                measureAndUpdateTraveledDistance(regular_speed,&heading_diff);
                 //checkIfCloseToWall();
                 time_since_last_wall_closenes_check = time(NULL);
                 gettimeofday(&tval_before, NULL);
 
             }else{
-                measureAndUpdateTraveledDistance(regular_speed,&current_heading);
+                measureAndUpdateTraveledDistance(regular_speed,&heading_diff);
                 gettimeofday(&tval_before, NULL);
             }
             
@@ -210,7 +245,7 @@ double calculateDistance(int speed,struct timeval *time){
     //Distance in counts each usec;
 
     double counts = speed*time_in_usec/1000000.000;
-    double wheel_radius = getWheelDiameter()/2;
+    double wheel_radius = WHEEL_DIAMETER/2;
     //Distance in cm.
     double distance = counts * wheel_radius * M_PI / 360 ;
 
@@ -231,7 +266,7 @@ void measureAndUpdateTraveledDistance(int speed,float* heading){
 
 
 //TODO: Update the map with the value for the position.
-void setMapPointValue(int obstacle,int distance){
+void setMapPointValue(int obstacle,float distance){
     int x;
     int y;
     getSquareInFront(distance,&x,&y);
@@ -246,22 +281,25 @@ void setMapPointValue(int obstacle,int distance){
 //TODO: Make this method discover what the obstable is.
 int whatIsObstacle(){
     printf("Running at speed: %i\n",check_color_speed);
-    runForever(check_color_speed);
+    runForeverCorrected(check_color_speed);
     float current_heading;
+    float heading_diff;
     while(1){
         current_heading = getGyroDegrees();
+        heading_diff = current_heading - last_gyro_read;
+        last_gyro_read = current_heading;
         if(fabs(current_heading) >= 1){
-            calibrateGyro();
+            //calibrateGyro();
         }
         gettimeofday(&tval_before, NULL);
         float distance = getDistanceSensorValue();
         if(distance <= COLOR_CHECK_DISTANCE){
             stopEngines();
-            measureAndUpdateTraveledDistance(check_color_speed,&current_heading);
+            measureAndUpdateTraveledDistance(check_color_speed,&heading_diff);
             break;
         }
         Sleep(100);
-        measureAndUpdateTraveledDistance(check_color_speed,&current_heading);
+        measureAndUpdateTraveledDistance(check_color_speed,&heading_diff);
     }
     turnNumberOfDegsCorrected(turn_speed,25),
     Sleep(50);
@@ -291,6 +329,9 @@ int whatIsObstacle(){
     }
     */
 }
+void findCenterOfObject(){
+
+}
 
 
 void checkIfCloseToWall(){
@@ -310,28 +351,30 @@ void checkIfCloseToWall(){
     if(distanceLeft <= SHOULD_AVOID && distanceRight <= SHOULD_AVOID){
         printf("Close both directions, turn around\n");
         turnNumberOfDegsCorrected(turn_speed,180);
-        runForever(regular_speed);
+        
     }
     else if(distanceLeft <= SHOULD_AVOID){
         printf("Close on the left, correct right\n");
         turnNumberOfDegsCorrected(turn_speed,-20);
-        runForever(regular_speed);
+        
 
     }
     else if(distanceRight <= SHOULD_AVOID){
         printf("Close on the right, correct left\n");
         turnNumberOfDegsCorrected(turn_speed,20);
-        runForever(regular_speed);
+        
     }else{
         printf("Continue foreward\n");
-        runForever(regular_speed);
+        
     }
+    runForeverCorrected(regular_speed);
        
 }
 
 void turnToInitialHeading(){
-    int initial_heading = (int)getInitialHeading();
-    turnToDeg(turn_speed,initial_heading);
+    float heading = INITIAL_HEADING;
+    printf("LOL should turn to this %f\n",heading);
+    turnToDegCorrected(turn_speed,INITIAL_HEADING);
 }
 
 void goToNextUndiscoveredPoint(){
@@ -347,6 +390,7 @@ void goToNextUndiscoveredPoint(){
     getDistanceAndDirectionToPoint(x,y,&dx,&dy,&h);
     double dist = sqrt(pow(dx,2) + pow(dy,2));
     printf("dx is %lf , dy is %lf, h is %f\n",dx,dy,h);
+    printf("Running to rel pos\n");
     runToRelPos(regular_speed,dist,h);
 }
 

@@ -6,13 +6,13 @@ default: MainProgram StopProgram
 
 MainProgram: MainProgram.o SensorController.o EngineController.o PositionController.o BluetoothController.o
 
-		$(CC) MainProgram.o EngineController.o SensorController.o PositionController.o BluetoothController.o -Wall -w -lm -lev3dev-c -lm -lbluetooth -o MainProgram
+		$(CC) MainProgram.o EngineController.o SensorController.o PositionController.o BluetoothController.o -pthread -Wall -w -lm -lev3dev-c -lm -lbluetooth -o MainProgram
 
 MainProgram.o:
 
 		$(CC) $(CFLAGS) -c src/Client/MainProgram.c -o MainProgram.o
 
-EngineController.o: SensorController.o
+EngineController.o:
 
 		$(CC) $(CFLAGS) -c src/Client/EngineController.c -o EngineController.o
 
@@ -30,7 +30,7 @@ BluetoothController.o:
 
 StopProgram: EngineController.o SensorController.o
 		$(CC) $(CFLAGS) -c src/Client/StopEngines.c -o StopProgram.o
-		$(CC) StopProgram.o EngineController.o SensorController.o -Wall -w -lm -lev3dev-c -o StopProgram
+		$(CC) StopProgram.o EngineController.o SensorController.o -pthread -Wall -w -lm -lev3dev-c -o StopProgram
 
 PositionTest:
 		$(CC) -w -o PositionTest src/Client/PositionController.c -lm
@@ -42,8 +42,8 @@ local:
 		$(CCL) $(CFLAGSL) -c src/Client/SensorController.c -o SensorController.o
 		$(CCL) $(CFLAGSL) -c src/Client/PositionController.c -o PositionController.o
 		$(CCL) $(CFLAGSL) -c src/Client/StopEngines.c -o StopProgram.o
-		$(CCL) StopProgram.o EngineController.o SensorController.o -Wall -w -lm -lev3dev-c -o StopProgram
-		$(CCL) MainProgram.o EngineController.o SensorController.o PositionController.o -Wall -w -lm -lev3dev-c -lm  -o MainProgram
+		$(CCL) StopProgram.o EngineController.o SensorController.o -pthread -Wall -w -lm -lev3dev-c -o StopProgram
+		$(CCL) MainProgram.o EngineController.o SensorController.o PositionController.o -pthread -Wall -w -lm -lev3dev-c -lm  -o MainProgram
 
 
 

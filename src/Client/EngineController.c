@@ -7,9 +7,11 @@
 #include "ev3_sensor.h"
 #include "headers/EngineController.h"
 #include "headers/SensorController.h"
+#include "headers/PositionController.h"
 #include <math.h>
 #include <unistd.h>
 #include <time.h>
+#include <pthread.h>
 #define RIGHT 66
 #define LEFT 65
 #define BALL 68
@@ -24,7 +26,7 @@
 #define DEGREE_TO_COUNT( d )  (( d ) * 260 / 180 )
 
 #define DEGREE_ERROR_MARGIN 2
-#define WHEEL_DIAMETER 5.6 // In centimetres
+ // In centimetres
 
 
 int max_speed;  /* Motor maximal speed */
@@ -45,43 +47,7 @@ enum {
     STOPPED
 };
 
-/*
-void discoverEngines(){
-    uint8_t sn;
-    char s[ 256 ];
-    int i;
-    for (i = 0; i < DESC_LIMIT; i++ ) {
-        if ( ev3_tacho[ i ].type_inx != TACHO_TYPE__NONE_ ) {
-            printf( "  type = %s\n", ev3_tacho_type( ev3_tacho[ i ].type_inx ));
-			printf( "  port = %s\n", ev3_tacho_port_name( i, s ));
-			printf("  port = %d %d\n", ev3_tacho_desc_port(i), ev3_tacho_desc_extport(i));
-        }
-    }
-    int port=65;
-    int counter = 0;
-	for (port=65; port<69; port++){
-	    if ( ev3_search_tacho_plugged_in(port,0, &sn, 0 )) {
-            int speed;
-            printf("LEGO engine found\n");
-            printf("Sequence number %i\n",sn);
-            get_tacho_max_speed( sn, &speed );
-            motor[counter] = sn;
-            counter++;
-            max_speed = speed;
-	
-	    } else {
-		    printf( "LEGO_EV3_M_MOTOR 1 is NOT found\n" );
-        }
-        printf("Port: %i\n",port);
-    }
-    arm = motor[2];
-    //motor[2] = DESC_LIMIT;
-    
-    //set_tacho_polarity_inx( motor[ L ], TACHO_NORMAL);
-    //set_tacho_polarity_inx( motor[ R ], TACHO_NORMAL);
-    return;
-}
-*/
+
 
 int initEngines(){
     if (!ev3_tacho_init()){
@@ -125,7 +91,11 @@ int initEngines(){
 
 int stopEngines(){
     moving = STOPPED;
+    pthread_mutex_init(&engine_lock, NULL);
+    stopp_engine_thread = 1;
+    pthread_mutex_unlock(&engine_lock);
     multi_set_tacho_command_inx( sn_engineLRM, TACHO_STOP );
+
     return;
 }
 int isRunning( void )
@@ -138,28 +108,45 @@ int isRunning( void )
     return ( 0 );
 }
 void runDistance(int speed,double distance){
-    set_tacho_speed_sp(sn_engineL, speed );
-    set_tacho_speed_sp( sn_engineR, speed );
-    set_tacho_position_sp( sn_engineL, distance );
-    set_tacho_position_sp( sn_engineR, distance );
-    multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_TO_REL_POS );
+    printf("Distance is %lf\n",distance);
+    int run_time = 100000 * distance/(speed * WHEEL_DIAMETER/2);
+    printf("Running for time %i\n",run_time);
+    runTimed(speed,run_time);
 }
 
-void *runForever(int speed)
+void *runForever(void *args)
 {
-    
-    printf("Should run at this speed: %i\n",speed);
+    int speed = *((int *) args);
+    free(args);
+    int sleep_time = 100; // [ms]
     multi_set_tacho_stop_action_inx( sn_engineLR, TACHO_BRAKE );
     multi_set_tacho_polarity_inx( sn_engineLR, TACHO_NORMAL);
-    set_tacho_speed_sp( sn_engineL, speed );
-    set_tacho_speed_sp( sn_engineR, speed );
+    multi_set_tacho_speed_sp( sn_engineLR, speed );
+    int initial_angle = getGyroDegrees();
+    int current_angle = initial_angle;
+    int error;
     multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
-    moving = RUNNING;
-}
-void runToRelPos( int speed,double distance, int h){  
-    turnToDeg(max_speed*0.1,h);
-    runDistance(speed,distance);
 
+    // TODO: REPLACE THIS WITH A PROPER PID CONTROLER!
+    while (stopp_engine_thread == 0){
+        current_angle = getGyroDegrees();
+        error = current_angle-initial_angle;
+        if (error > 1 || error < -1) {
+            set_tacho_speed_sp(sn_engineR, speed+(error*2));
+            set_tacho_speed_sp(sn_engineL, speed-(error*2));
+            multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
+        }
+        Sleep(sleep_time);        
+    }
+    multi_set_tacho_command_inx( sn_engineLR, TACHO_STOP );
+    
+    pthread_join(engine_tid, NULL);
+    //return;
+}
+void runToRelPos( int speed,double distance, int heading_change){  
+    turn2(heading_change);
+    runDistance(speed,distance);
+    
 }
 void runTimed( int speed, int mseconds )
 {
@@ -224,7 +211,6 @@ void backAwayTimed(int speed,int mseconds){
         multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
     }
     return;
-
 }
 
 int getMaxSpeed(){
@@ -315,15 +301,7 @@ void turnNumberOfDegs(int turn_speed,int degrees){
 
 
 void turnNumberOfDegsCorrected(int speed,int x){
-    /*
-    int current_deg = getGyroDegrees();
-    int target = (current_deg + degree) % 360;
-    if(target < 0){
-        target += 360;
-    }
-    printf("Should turn to %i\n",target);
-    turnToDeg(speed,target);
-    */
+
     stopEngines();
     printf("Turning2 by: %d\n", x);
     stop_turn = 0;
@@ -384,11 +362,13 @@ void turnNumberOfDegsCorrected(int speed,int x){
     return;
 }
 
-void turnToDegCorrected(int target){
-    int current_deg = getGyroDegrees();
-    int diff;
-    int left_diff;
-    int right_diff;
+void turnToDegCorrected(int speed,float target){
+    printf("Should turn to %i\n",target);
+    float current_deg = HEADING;
+    printf("This is the current heading %f\n",current_deg);
+    float diff;
+    float left_diff;
+    float right_diff;
 
     if(target > current_deg){
         left_diff = (target - current_deg);
@@ -400,12 +380,18 @@ void turnToDegCorrected(int target){
     }
         
     printf("This is left diff : %i , This is right diff %i\n",left_diff,right_diff);
-    if (abs(left_diff) <= abs(right_diff)){
+    if (fabs(left_diff) <= fabs(right_diff)){
         diff = left_diff;
-    }else if(abs(left_diff)  > abs(right_diff)){
+    }else if(fabs(left_diff)  > fabs(right_diff)){
         diff = right_diff;
     }
-    int x = diff;
+    int x;
+    if(diff < 0){
+        x = ceil(diff);
+    }else{
+        x = floor(diff);
+    }
+    
 
     stopEngines();
     printf("Turning2 by: %d\n", x);
@@ -467,9 +453,7 @@ void turnToDegCorrected(int target){
     return;
 }
 
-double getWheelDiameter(){
-    return WHEEL_DIAMETER;
-}
+
 int degToDist(int deg){
     return M_PI * WHEEL_DIAMETER * deg /360;
 }
@@ -531,7 +515,7 @@ void turn2( int x)
     // HALT!
     multi_set_tacho_polarity_inx( sn_engineLR, TACHO_NORMAL);
     multi_set_tacho_command_inx( sn_engineLR, TACHO_STOP);
-    Sleep(500); 
+    Sleep(100); 
 
     return;
 }
@@ -545,12 +529,14 @@ void adjust_speed_by(int err){
     set_tacho_speed_sp(sn_engineL, max_speed-(err*1));
     multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
 }
-void runForeverCorrected(){
+void runForeverCorrected(int speed){
+    int *arg = malloc(sizeof(int));
     pthread_mutex_init(&engine_lock, NULL);
-
+    stopp_engine_thread = 0;
     pthread_mutex_unlock(&engine_lock);
-
-    pthread_create(&position_tid, NULL, runForever, NULL);
+    *arg = speed;
+    pthread_create(&engine_tid, NULL, runForever, arg);
+    printf("Thread created\n");
 }
 
 

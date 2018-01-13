@@ -1,10 +1,20 @@
 #ifndef POSITIONCONTROLLER_H   /* Include guard */
 #define POSITIONCONTROLLER_H
 
-int START_SQUARE_Y;
-int START_SQUARE_X;
-int current_square_y; 
+double POS_X;
+double POS_Y;
+double REL_POS_X;
+double REL_POS_Y;
 int current_square_x;
+int current_square_y;
+float INITIAL_HEADING;
+float HEADING;
+int START_SQUARE_X;
+int START_SQUARE_Y;
+
+pthread_t position_tid;
+pthread_mutex_t position_lock;
+
 int * popFromQueue();
 
 float getCurrentHeading();
