@@ -5,13 +5,16 @@
 #include <time.h>
 #include <math.h>
 #include "headers/PositionController.h"
+#include "headers/EngineController.h"
+#include "headers/SensorController.h"
+#include <sys/time.h>
 
 #define CalcHeading(deg) ((deg + HEADING) % 360)
 #define CalcSquareX (int)((POS_X)/SQUARE_WIDTH)
 #define CalcSquareY (int)((POS_Y)/SQUARE_HEIGHT)
 #define SQUARE_WIDTH 5
 #define SQUARE_HEIGHT 5
-
+#define Sleep( msec ) usleep(( msec ) * 1000 )
 enum{
     UP,
     LEFT,
@@ -47,6 +50,8 @@ typedef struct PointQueue;
 struct Map neighbour_matrix;
 struct Map map;
 struct PointQueue point_queue;
+
+struct timeval tval_before, tval_after, tval_result;
 
 
 void updateCurrentHeading(float change){
@@ -653,8 +658,61 @@ int calcSquareY(double y){
     }
     return ceil(y/SQUARE_HEIGHT);
 }
-void startPositionUpdateThread(){
+void *updatePositionInThread(void *args){
+    printf("Starting thread\n");
+    gettimeofday(&tval_before, NULL);
+    last_gyro_read = getGyroDegrees();
+    while(!stopp_position_thread){
+        printf("Updating position\n");
+        float gyro_read = getGyroDegrees();
+        float heading_diff = gyro_read - last_gyro_read;
+        last_gyro_read = gyro_read;
+        printf("Heading diff %f",heading_diff);
+        measureAndUpdateTraveledDistance(current_speed,&heading_diff);
+        if(fabs(gyro_read) >= 1){
+            //calibrateGyro();
+        }
+        gettimeofday(&tval_before, NULL);
+        Sleep(250);
+    }
+    pthread_join(position_tid, NULL);
+}
 
+void startPositionUpdateThread(){
+    printf("Starting position update thread\n");
+    int *arg = malloc(sizeof(int));
+    pthread_mutex_init(&position_lock, NULL);
+    stopp_position_thread = 0;
+    pthread_mutex_unlock(&position_lock);
+    pthread_create(&position_tid, NULL, updatePositionInThread, arg);
+    printf("Position thread created\n");
 }
 
 
+
+double calculateDistance(int speed,struct timeval *time){
+    long time_in_usec = (time->tv_sec*1000000.0 + time->tv_usec);
+    //printf("Time in micro seconds: %d\n",time_in_usec);
+    //Distance in counts each usec;
+    double counts = speed*time_in_usec/1000000.000;
+    double wheel_radius = WHEEL_DIAMETER/2;
+    //Distance in cm.
+    double distance = counts * wheel_radius * M_PI / 360 ;
+    return distance;
+}
+
+void measureAndUpdateTraveledDistance(int speed,float *heading){
+    pthread_mutex_init(&position_lock, NULL);
+    updateCurrentHeading(-heading[0]);
+    if(speed = 0){
+        pthread_mutex_unlock(&position_lock);
+        return;
+    }
+    gettimeofday(&tval_after, NULL);
+    timersub(&tval_after, &tval_before, &tval_result);
+    double traveled_distance = calculateDistance(speed,&tval_result);
+    printf("Traveled distance %lf\n", traveled_distance);
+    updateRobotPosition(traveled_distance);
+    pthread_mutex_unlock(&position_lock);
+    
+}
