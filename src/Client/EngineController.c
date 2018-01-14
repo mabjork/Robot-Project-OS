@@ -318,19 +318,7 @@ void turnNumberOfDegsCorrected(int speed,int x){
     multi_set_tacho_command_inx( sn_engineLR, TACHO_STOP);
     Sleep(500); 
 
-<<<<<<< HEAD
-        //diff = (target - current_deg);
-        
-        printf("Degree difference: %i\n", diff);
-        turnNumberOfDegs(speed,diff);
-        waitForCommandToFinish();
-        Sleep(200);
-        current_deg = getCompassDegrees();
-    }while(abs(diff) > DEGREE_ERROR_MARGIN);  
-    printf("DONE!!!\n");
-=======
     return;
->>>>>>> master
 }
 
 void turnToDegCorrected(int speed,float target){
