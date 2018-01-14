@@ -188,14 +188,6 @@ void startDiscovery(){
     
     //bt_send_position();
     //goToNextUndiscoveredPoint();
-    gettimeofday(&tval_before, NULL);
-    //bt_send_position();
-    runForever(regular_speed);
-
-    while(1){
-        
-        //int command = readCommand();
-
     runForeverCorrected(regular_speed);
     while(discovering){
         int is_running = isRunning();       

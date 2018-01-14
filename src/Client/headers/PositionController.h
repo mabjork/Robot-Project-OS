@@ -12,6 +12,24 @@ float HEADING;
 int START_SQUARE_X;
 int START_SQUARE_Y;
 
+struct Map{
+    struct Array *rows;
+    size_t height;
+    size_t width;
+    size_t longest_row;
+};
+struct Array{
+    char * array;
+    size_t used;
+    size_t size;
+};
+
+
+
+typedef struct Map;
+typedef struct Array;
+struct Map neighbour_matrix;
+struct Map map;
 int stopp_position_thread;
 float last_gyro_read;
 

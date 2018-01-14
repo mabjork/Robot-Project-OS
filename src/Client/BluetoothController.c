@@ -132,8 +132,57 @@ ssize_t bt_position(){
     //Sleep( 1000 );
 }
 
-/* MISSING */
 /* MAPDATA */
+void bt_mapdata(){
+  char string[58];
+  int16_t x1, y1;
+  int16_t no_color = 0;
+  int16_t max_color = 255;
+  struct Array row;
+  struct Array *rows = map.rows;
+
+  for(int i = map.height-1;i > -1;i--){
+    row = rows[i];
+    
+    for(int j = 0;j < map.width; j++){
+      x1 = (int16_t)(j);
+      y1 = (int16_t)(i);
+
+      *((uint16_t *) string) = msgId++;
+      string[2] = TEAM_ID;
+      string[3] = 0xFF;
+      string[4] = MSG_MAPDATA;
+      string[5] = (uint8_t)(x1);
+      string[6] = (uint8_t)(x1>>8);
+      string[7] = (uint8_t)(y1);
+      string[8] = (uint8_t)(y1>>8);
+      string[9] = no_color;    //Red
+      string[10] = no_color;   //Green
+      string[11] = max_color;   //Blue
+
+      //Non-movable
+      if (row.array[j] == 'N'){ //black
+        string[9] = no_color;    
+        string[10] = no_color;   
+        string[11] = no_color;
+      }
+
+      //Movable
+      else if (row.array[j] == 'M'){ //red
+        string[10] = max_color;
+      }
+
+      //Discovered
+      else if (row.array[j] == 'D' || row.array[j] == 'R' || row.array[j] == 'S'){ // white
+        string[9] = max_color;
+        string[10] = max_color;
+        string[11] = max_color;
+      }
+
+      write(s, string, 12);
+    }
+  }
+}
 
 /* MAPDONE */
 void bt_mapdone(){
@@ -229,16 +278,6 @@ int bt_check(){
 //void write_to_server (struct team *t, const char *buf, size_t size) {
 //    write (t->sock, buf, size);
 //}
-
-/*
-void get_position_and_heading(float * x, float *y, int * heading){
-    pthread_mutex_lock(&position_mutex);
-    *x = POS_X;
-    *y = POS_Y;
-    *heading = HEADING;
-    pthread_mutex_unlock(&position_mutex);
-}
-*/
 
 int bt_close(){
     bt_stop();
