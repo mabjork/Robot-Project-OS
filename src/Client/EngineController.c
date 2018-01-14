@@ -24,7 +24,7 @@
 #define SPEED_LINEAR      75  /* Motor speed for linear motion, in percents */
 #define SPEED_CIRCULAR    50  /* ... for circular motion */
 #define DEGREE_TO_COUNT( d )  (( d ) * 260 / 180 )
-
+#define COUNT_TO_DEG( c ) (( c ) * 180 / 260 )
 #define DEGREE_ERROR_MARGIN 2
  // In centimetres
 
@@ -108,7 +108,7 @@ int isRunning( void )
 }
 void runDistance(int speed,double distance){
     printf("Distance is %lf\n",distance);
-    int run_time = 100000 * distance/(speed * WHEEL_DIAMETER/2);
+    int run_time = 100000 * distance /(DEGREE_TO_COUNT(speed) * WHEEL_DIAMETER/2);
     printf("Running for time %i\n",run_time);
     runTimed(speed,run_time);
 }
@@ -116,10 +116,8 @@ void runDistance(int speed,double distance){
 void *runForever(void *args)
 {
     int speed = *((int *) args);
-    pthread_mutex_init(&engine_lock, NULL);
-    current_speed = speed;
-    pthread_mutex_unlock(&engine_lock);
     free(args);
+    printf("Current speed is now %i\n",current_speed);
     int sleep_time = 100; // [ms]
     multi_set_tacho_stop_action_inx( sn_engineLR, TACHO_BRAKE );
     multi_set_tacho_polarity_inx( sn_engineLR, TACHO_NORMAL);
@@ -207,8 +205,8 @@ void backAwayTimed(int speed,int mseconds){
             current_angle = getGyroDegrees();
             error = current_angle-initial_angle;
             if (error > 1 || error < -1) {
-                set_tacho_speed_sp(sn_engineR, speed+(error*2));
-                set_tacho_speed_sp(sn_engineL, speed-(error*2));
+                set_tacho_speed_sp(sn_engineR, speed-(error*2));
+                set_tacho_speed_sp(sn_engineL, speed+(error*2));
                 multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_TIMED ); // TODO: FIX TIMED!
             }
             mseconds-=sleep_time;
@@ -271,7 +269,7 @@ void turnNumberOfDegsCorrected(int speed,int x){
     }
 
     multi_set_tacho_stop_action_inx( sn_engineLR, TACHO_HOLD );
-    multi_set_tacho_speed_sp( sn_engineLR, 250);
+    multi_set_tacho_speed_sp( sn_engineLR, 200);
     multi_set_tacho_command_inx( sn_engineLR, TACHO_STOP );
 
     // Active
@@ -285,13 +283,20 @@ void turnNumberOfDegsCorrected(int speed,int x){
     // Gyro control loop
     int deg_left = target_angle - current_angle;
     int deg_left_abs = abs(deg_left);
-    int stage = 3;
+    int stage;
+    if(deg_left_abs <= 10){
+        stage = 1;
+    }else if (deg_left_abs <= 25){
+        stage = 2;
+    }else{
+        stage = 3;
+    }
     while (stop_turn == 0 && ((deg_left > 0 && x > 0 ) || ((deg_left < 0) && x < 0))) { // TODO: Check gyro value +/-
         current_angle = -getGyroDegrees();
         deg_left = target_angle - current_angle;
         deg_left_abs = abs(deg_left);
 
-        printf("TURN: T: %d C: %d Deg_Left: %d\n",target_angle,current_angle,deg_left);
+        //printf("TURN: T: %d C: %d Deg_Left: %d\n",target_angle,current_angle,deg_left);
 
         if ( stage == 1 && 0 < deg_left_abs && deg_left_abs <= 10 ) {
             multi_set_tacho_speed_sp( sn_engineLR, 20);
@@ -321,13 +326,13 @@ void turnNumberOfDegsCorrected(int speed,int x){
     return;
 }
 
-void turnToDegCorrected(int speed,float target){
-    printf("Should turn to %i\n",target);
-    float current_deg = HEADING;
-    printf("This is the current heading %f\n",current_deg);
-    float diff;
-    float left_diff;
-    float right_diff;
+void turnToDegCorrected(int speed,int target){
+    printf("LOLOL Should turn to %i\n",target);
+    int current_deg = (int)HEADING;
+    printf("LOLOL This is the current heading %i\n",current_deg);
+    int diff;
+    int left_diff;
+    int right_diff;
 
     if(target > current_deg){
         left_diff = (target - current_deg);
@@ -344,12 +349,8 @@ void turnToDegCorrected(int speed,float target){
     }else if(fabs(left_diff)  > fabs(right_diff)){
         diff = right_diff;
     }
-    int x;
-    if(diff < 0){
-        x = ceil(diff);
-    }else{
-        x = floor(diff);
-    }
+    int x = diff;
+    
     
 
     stopEngines();
@@ -381,7 +382,14 @@ void turnToDegCorrected(int speed,float target){
     // Gyro control loop
     int deg_left = target_angle - current_angle;
     int deg_left_abs = abs(deg_left);
-    int stage = 3;
+    int stage;
+    if(deg_left_abs <= 10){
+        stage = 1;
+    }else if (deg_left_abs <= 25){
+        stage = 2;
+    }else{
+        stage = 3;
+    }
     while (stop_turn == 0 && ((deg_left > 0 && x > 0 ) || ((deg_left < 0) && x < 0))) { // TODO: Check gyro value +/-
         current_angle = -getGyroDegrees();
         deg_left = target_angle - current_angle;
@@ -477,6 +485,7 @@ void turn2( int x)
         }
         Sleep(50);
     }
+    Sleep(200);
     pthread_mutex_init(&engine_lock, NULL);
     calibrateGyro();
     last_gyro_read = getGyroDegrees();
@@ -502,10 +511,86 @@ void runForeverCorrected(int speed){
     int *arg = malloc(sizeof(int));
     pthread_mutex_init(&engine_lock, NULL);
     stopp_engine_thread = 0;
+    current_speed = speed;
+    
     pthread_mutex_unlock(&engine_lock);
     *arg = speed;
     pthread_create(&engine_tid, NULL, runForever, arg);
     printf("Thread created\n");
+}
+
+void turnWhileCheckDistance(int x,int *heading,int *dist){
+    stopEngines();
+    printf("Turning2 by: %d\n", x);
+    stop_turn = 0;
+
+    if ( x > 0 ) {
+        set_tacho_polarity_inx( sn_engineL, TACHO_INVERSED);
+        set_tacho_polarity_inx( sn_engineR, TACHO_NORMAL);
+    } else  if ( x < 0 ) {
+        set_tacho_polarity_inx( sn_engineL, TACHO_NORMAL);
+        set_tacho_polarity_inx( sn_engineR, TACHO_INVERSED);
+    } else {
+        return;
+    }
+
+    multi_set_tacho_stop_action_inx( sn_engineLR, TACHO_HOLD );
+    multi_set_tacho_speed_sp( sn_engineLR, 200);
+    multi_set_tacho_command_inx( sn_engineLR, TACHO_STOP );
+
+    // Active
+
+    int current_angle = -getGyroDegrees();
+    int target_angle = current_angle + x;
+
+    // Start the active engine
+    multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
+
+    // Gyro control loop
+    int deg_left = target_angle - current_angle;
+    int deg_left_abs = abs(deg_left);
+    int stage = 3;
+    float lowest_dist = getDistanceSensorValue();
+    float lowest_heading = HEADING;
+    while (stop_turn == 0 && ((deg_left > 0 && x > 0 ) || ((deg_left < 0) && x < 0))) { // TODO: Check gyro value +/-
+        current_angle = -getGyroDegrees();
+        deg_left = target_angle - current_angle;
+        deg_left_abs = abs(deg_left);
+        float distance = getDistanceSensorValue();
+        if(distance < lowest_dist){
+            lowest_dist = distance;
+            lowest_heading = HEADING;
+        }
+        printf("TURN: T: %d C: %d Deg_Left: %d\n",target_angle,current_angle,deg_left);
+
+        if ( stage == 1 && 0 < deg_left_abs && deg_left_abs <= 10 ) {
+            multi_set_tacho_speed_sp( sn_engineLR, 20);
+            multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
+            stage--;
+        } else if ( stage == 2 && deg_left_abs <= 25 ) {
+            multi_set_tacho_speed_sp( sn_engineLR, 50);
+            multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
+            stage--;
+        } else if ( stage == 3 && deg_left_abs <= 35 ) {
+            multi_set_tacho_speed_sp( sn_engineLR, 150);
+            multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
+            stage--;
+        }
+        Sleep(50);
+    }
+    *heading = lowest_heading;
+    *dist = lowest_dist;
+    Sleep(200);
+    pthread_mutex_init(&engine_lock, NULL);
+    calibrateGyro();
+    last_gyro_read = getGyroDegrees();
+    pthread_mutex_unlock(&engine_lock);
+    // HALT!
+    multi_set_tacho_polarity_inx( sn_engineLR, TACHO_NORMAL);
+    multi_set_tacho_command_inx( sn_engineLR, TACHO_STOP);
+    Sleep(100); 
+
+    return;
 }
 
 

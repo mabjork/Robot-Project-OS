@@ -15,6 +15,8 @@
 #define SQUARE_WIDTH 5
 #define SQUARE_HEIGHT 5
 #define Sleep( msec ) usleep(( msec ) * 1000 )
+#define DEGREE_TO_COUNT( d )  (( d ) * 260 / 180 )
+#define COUNT_TO_DEG( c ) (( c ) * 180 / 260 )
 enum{
     UP,
     LEFT,
@@ -144,7 +146,7 @@ void updateRobotPosition(double distance){
             
             int diff = current_square_x - map.width + 1;
             for(int i = 0; i<diff;i++){
-                printf("Adding col to end of map!\n");
+                //printf("Adding col to end of map!\n");
                 addCol(&map);
             }
         }
@@ -167,7 +169,7 @@ void updateRobotPosition(double distance){
             
             int diff = current_square_y - map.height + 1;
             for(int i = 0; i<diff;i++){
-                printf("Adding row to end of map!\n");
+                //printf("Adding row to end of map!\n");
                 addRow(&map);
             }
         }
@@ -179,11 +181,11 @@ void updateRobotPosition(double distance){
 }
 
 void updateMap(int x,int y,char value){
-    printf("Map height: %i, Map width: %i\n",map.height,map.width);
-    printf("x is: %i, y is: %i\n",x,y);
+    //printf("Map height: %i, Map width: %i\n",map.height,map.width);
+    //printf("x is: %i, y is: %i\n",x,y);
     if(x < 0 || y < 0 || map.width < x || map.height < y)return;
     //y = map.height - 1 - y;
-    printf("Updating map\n");
+    //printf("Updating map\n");
     struct Array *rows = map.rows;
     struct Array row = rows[y];
     if(row.array[x] == 'W' || row.array[x] == 'B' || row.array[x] == 'S'){
@@ -590,7 +592,7 @@ int main(int argc, char const *argv[]) {
 void printMatrix(struct Map *m){
     struct Array row;
     struct Array *rows = m-> rows;
-    printf("Map height %i\n",m->height);
+    //printf("Map height %i\n",m->height);
     
     for(int i = m->height-1;i > -1;i--){
         row = rows[i];
@@ -641,10 +643,8 @@ void sortPositionsBasedOnDistance(){
                 point_queue.queue[j+1] = point;
             }
 
-        }
-            
+        }   
     }
-    
 }
 int calcSquareX(double x){
     if(x < 0){
@@ -659,19 +659,20 @@ int calcSquareY(double y){
     return ceil(y/SQUARE_HEIGHT);
 }
 void *updatePositionInThread(void *args){
-    printf("Starting thread\n");
+    //printf("Starting thread\n");
     gettimeofday(&tval_before, NULL);
+    pthread_mutex_init(&position_lock, NULL);
     last_gyro_read = getGyroDegrees();
+    pthread_mutex_unlock(&position_lock);
     while(!stopp_position_thread){
-        printf("Updating position\n");
+        //printf("Updating position\n");
         float gyro_read = getGyroDegrees();
         float heading_diff = gyro_read - last_gyro_read;
         last_gyro_read = gyro_read;
-        printf("Heading diff %f",heading_diff);
+        //printf("Heading diff %f\n",heading_diff);
+        
+        //printf("LOLOLOLOL THE SPEED IS %i\n", current_speed);
         measureAndUpdateTraveledDistance(current_speed,&heading_diff);
-        if(fabs(gyro_read) >= 1){
-            //calibrateGyro();
-        }
         gettimeofday(&tval_before, NULL);
         Sleep(250);
     }
@@ -694,7 +695,7 @@ double calculateDistance(int speed,struct timeval *time){
     long time_in_usec = (time->tv_sec*1000000.0 + time->tv_usec);
     //printf("Time in micro seconds: %d\n",time_in_usec);
     //Distance in counts each usec;
-    double counts = speed*time_in_usec/1000000.000;
+    double counts = COUNT_TO_DEG(speed)*time_in_usec/1000000.000;
     double wheel_radius = WHEEL_DIAMETER/2;
     //Distance in cm.
     double distance = counts * wheel_radius * M_PI / 360 ;
@@ -704,13 +705,13 @@ double calculateDistance(int speed,struct timeval *time){
 void measureAndUpdateTraveledDistance(int speed,float *heading){
     pthread_mutex_init(&position_lock, NULL);
     updateCurrentHeading(-heading[0]);
-    if(speed = 0){
+    if(current_speed == 0){
         pthread_mutex_unlock(&position_lock);
         return;
     }
     gettimeofday(&tval_after, NULL);
     timersub(&tval_after, &tval_before, &tval_result);
-    double traveled_distance = calculateDistance(speed,&tval_result);
+    double traveled_distance = calculateDistance(current_speed,&tval_result);
     printf("Traveled distance %lf\n", traveled_distance);
     updateRobotPosition(traveled_distance);
     pthread_mutex_unlock(&position_lock);

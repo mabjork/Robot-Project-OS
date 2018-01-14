@@ -14,8 +14,8 @@
 #include "headers/BluetoothController.h"
 
 #define Sleep( msec ) usleep(( msec ) * 1000 )
-#define OBJECT_TO_CLOSE 300
-#define SHOULD_AVOID 350
+#define OBJECT_TO_CLOSE 200
+#define SHOULD_AVOID 300
 #define COLOR_CHECK_DISTANCE 100
 #define TIME_TO_CHECK_WALL_CLOSENES 3
 #define TIME_TO_SEND_POS 1
@@ -67,10 +67,11 @@ struct timeval tval_before, tval_after, tval_result;
 int main(int argc, char const *argv[]) {
     //btcommunication();
     init();
-    initArm();
+    //initArm();
     startDiscovery();
-    findLastPoints();
-    goBackToStart();
+
+    //findLastPoints();
+    //goBackToStart();
     exit(0);
 }
 void next_point_test(){
@@ -147,7 +148,7 @@ void init(){
     printf("Sensors initiated\n");
     calibrateGyro();
     printf("Gyro calibrated\n");
-    initPositionController(90,5,3);
+    initPositionController(90,0,0);
     printf("Position controller initiated\n");
     getEngineSpeeds();
     initTimes();
@@ -169,6 +170,8 @@ void startDiscovery(){
     
     //bt_send_position();
     //goToNextUndiscoveredPoint();
+    turnNumberOfDegsCorrected(turn_speed,180);
+    time_since_last_wall_closenes_check = (unsigned)time(NULL);
     runForeverCorrected(regular_speed);
     while(discovering){
         int is_running = isRunning();       
@@ -183,20 +186,26 @@ void startDiscovery(){
             float close_dist = getDistanceSensorValue();
             setMapPointValue(obstacle,close_dist);
             Sleep(100);
-            backAwayTimed(regular_speed,1000);
-            Sleep(500);
+            backAwayTimed(regular_speed,500);
+            Sleep(100);
+            //correctAngle();
+            Sleep(100);
             /*
             turnNumberOfDegsCorrected(turn_speed,90);
             checkIfCloseToWall();
             runForeverCorrected(regular_speed);
-            time_since_last_wall_closenes_check = time(NULL);
+            
             */
             turnAndContinue();
+            time_since_last_wall_closenes_check = time(NULL);
         }
-        if(current_square_x == 0 || current_square_y == 0){
-            turnAndContinue();
+        if(current_square_x <= 0 || current_square_y <= 0){
+            if(HEADING < 360 && HEADING > 180){
+                turnAndContinue();
+            }
+            
         }
-        else if(isArrivedAtPoint() == 1){
+        if(isArrivedAtPoint() == 1){
             turnToInitialHeading();
             //checkSouroundings();
             goToNextUndiscoveredPoint();
@@ -204,7 +213,7 @@ void startDiscovery(){
         else{
 
             if(time(NULL) - time_since_last_wall_closenes_check > TIME_TO_CHECK_WALL_CLOSENES){
-                //checkIfCloseToWall();
+                checkIfCloseToWall();
                 time_since_last_wall_closenes_check = time(NULL);
 
             }else{
@@ -218,13 +227,15 @@ void startDiscovery(){
             time_since_last_position_update = time(NULL);
         }
         */
-        //Sleep(1000);
+        Sleep(100);
     }
     stopEngines();
     exit(0);
 }
 void findLastPoints(){
-
+    while(discovering){
+        goToNextUndiscoveredPoint();
+    }
 }
 void goBackToStart(){
 
@@ -239,6 +250,10 @@ void turnAndContinue(){
 
     if(distance <= OBJECT_TO_CLOSE){
         turnNumberOfDegsCorrected(turn_speed,180);
+        distance = getDistanceSensorValue();
+        if(distance <= OBJECT_TO_CLOSE){
+            turnNumberOfDegsCorrected(turn_speed,-90);
+        }
         
     }
     else{
@@ -253,7 +268,18 @@ void turnAndContinue(){
 
 }
 
-
+void correctAngle(){
+    int current_heading = HEADING;
+    if(current_heading < 135 && current_heading >= 45){
+        turnToDegCorrected(turn_speed,90);
+    }else if(current_heading < 215 && current_heading >= 135){
+        turnToDegCorrected(turn_speed,180);
+    }else if(current_heading < 305 && current_heading >= 215){
+        turnToDegCorrected(turn_speed,270);
+    }else{
+        turnToDegCorrected(turn_speed,0);
+    }
+}
 
 //TODO: Update the map with the value for the position.
 void setMapPointValue(int obstacle,float distance){
@@ -261,9 +287,9 @@ void setMapPointValue(int obstacle,float distance){
     int y;
     getSquareInFront(distance,&x,&y);
     if (obstacle == NON_MOVABLE){
-        updateMap(x+1,y+1,'N');
+        updateMap(x,y,'N');
     }else if (obstacle == MOVABLE){
-        updateMap(x+1,y+1,'M');
+        updateMap(x,y,'M');
     }else if (obstacle == OTHER){
         
     }
@@ -274,11 +300,15 @@ int whatIsObstacle(){
     Sleep(100);
     printf("Running at speed: %i\n",check_color_speed);
     runForeverCorrected(check_color_speed);
+    int time_since_start = time(NULL);
     while(1){
         float distance = getDistanceSensorValue();
         if(distance <= COLOR_CHECK_DISTANCE){
             stopEngines();
             break;
+        }else if(time_since_start - time(NULL) >= 5){
+            stopEngines();
+            return OTHER;
         }
         Sleep(100);
     }
@@ -309,9 +339,23 @@ int whatIsObstacle(){
 
     
 }
-void findCenterOfObject(){
-    while(1){
 
+void findCenterOfObject(){
+    int heading1;
+    int heading2;
+    int dist1;
+    int dist2;
+    turnWhileCheckDistance(35,heading1,dist1);
+    Sleep(100);
+    turnNumberOfDegsCorrected(turn_speed,-35);
+    Sleep(100);
+    turnWhileCheckDistance(-35,heading2,dist2);
+    Sleep(100);
+    turnNumberOfDegsCorrected(turn_speed,35);
+    if(heading1 < heading2){
+        turnToDegCorrected(turn_speed,heading1);
+    }else{
+        turnToDegCorrected(turn_speed,heading2);
     }
 }
 
@@ -340,13 +384,11 @@ void checkIfCloseToWall(){
     }
     else if(distanceLeft <= SHOULD_AVOID){
         printf("Close on the left, correct right\n");
-        turnNumberOfDegsCorrected(turn_speed,-20);
-        
-
+        turnNumberOfDegsCorrected(turn_speed,-10);
     }
     else if(distanceRight <= SHOULD_AVOID){
         printf("Close on the right, correct left\n");
-        turnNumberOfDegsCorrected(turn_speed,20);
+        turnNumberOfDegsCorrected(turn_speed,10);
         
     }else{
         printf("Continue foreward\n");
@@ -383,9 +425,7 @@ int isArrivedAtPoint(){
     return 0;
 }
 
-void findAlternateRoute(){
-    
-}
+
 
 
 

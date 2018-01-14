@@ -23,10 +23,15 @@ void runToRelPos( int speed,double distance, int heading_change);
 void discoverEngines();
 void waitForCommandToFinish();
 void turnToDeg(int speed,int target);
-void turnToDegCorrected(int speed,float target);
+
+void turnToDegCorrected(int speed,int target);
+
 void turnNumberOfDegsCorrected(int turn_speed,int degree);
+
 void backAwayTimed(int speed,int mseconds);
+
 void runDistance(int speed,double distance);
 void raiseArm();
 void lowerArm();
+void turnWhileCheckDistance(int x,int *heading,int *dist);
 #endif
