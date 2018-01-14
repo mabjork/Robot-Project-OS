@@ -1,24 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <time.h>
 #include <sys/socket.h>
 #include <math.h>
+#include <errno.h>
+#include <pthread.h>
+#include <stdbool.h>
+#include <sys/fcntl.h>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
 
 #include "headers/BluetoothController.h"
 #include "headers/PositionController.h"
 
-<<<<<<< HEAD
-#define SERV_ADDR "00:1a:7d:da:71:06" //"9c:ad:97:b1:a7:d2" /*Halvor PC BT*/ /* 38:ca:da:e9:90:6c Halvor Iphone BT */ 
-/* ROBOT BT "00:17:e9:f5:c9:dd" */ /*OS SERVER "dc:53:60:ad:61:90"*/ /*BT SERVER "00:1a:7d:da:71:06"*/
-
-=======
 #define SERV_ADDR  "9c:ad:97:b1:a7:d2" /*Halvor PC BT*/ /* 38:ca:da:e9:90:6c Halvor Iphone BT */ 
 /* ROBOT BT "00:17:e9:f5:c9:dd" */ /*OS SERVER "dc:53:60:ad:61:90"*/ /*BT SERVER "00:1a:7d:da:71:06*/
->>>>>>> master
 #define TEAM_ID 14
 
 #define MSG_ACK 0
@@ -32,7 +31,7 @@
 #define Sleep( msec ) usleep(( msec ) * 1000 )
 
 int s;
-bool mooving = false;x
+bool is_moving = false;
 uint16_t msgId = 0;
 
 /* START BLUETOOTH CONNECTION */
@@ -75,7 +74,7 @@ ssize_t bt_ack(uint16_t ackId, uint8_t dest, uint8_t statusCode){
 int bt_wait_startmsg(char * msg){
     if (msg[4] == MSG_START) {
         printf ("Received start message!\n");
-        moving = true;
+        is_moving = true;
         /* Start Driving */
         startDiscovery();
         return 0;
@@ -135,7 +134,17 @@ ssize_t bt_position(){
 
 /* MISSING */
 /* MAPDATA */
+
 /* MAPDONE */
+void bt_mapdone(){
+    char string[58];
+	printf("Done sending map");
+ 	*((uint16_t *) string) = msgId++;
+ 	string[2] = TEAM_ID;
+ 	string[3] = 0xFF;
+ 	string[4] = MSG_MAPDONE;
+ 	write(s, string, 5);
+}
 
 /* OBSTACLE */ //Possible to drop val, and just use 0, if we only drop obstacles
 ssize_t bt_obstacle(uint8_t val){
@@ -180,6 +189,18 @@ int bt_check(){
     //OBS: Check if this part works, might have to change read_from_server to read
     nbyte = read_from_server (s, msg, 9);
     printf("BT RECIEVED message type: %d of size %d\n", (int)msg[4], nbyte);
+    
+    if(nbyte==-1){
+        fprintf (stderr, "Server unexpectedly closed connection...\n");
+        bt_close (s);
+        exit (EXIT_FAILURE);
+
+    }
+    else if(nbyte==0){
+        printf ("BT: Nothing to read\n");
+        return 0;
+    }    
+
     else{
         switch(msg[4]) {
             //case MSG_ACK :
@@ -229,7 +250,7 @@ bool bt_terminate = false;
 
 void *bt_send(){
     while(!bt_terminate){
-        if(moving)
+        if(is_moving)
             bt_position();
         sleep(2);
     }
@@ -239,7 +260,7 @@ void *bt_send(){
 pthread_t t;
 
 void bt_transmit(){
-    bt_term = false;
+    bt_terminate = false;
     pthread_create(&t, NULL, bt_send, NULL);
 }
 

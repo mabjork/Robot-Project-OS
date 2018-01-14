@@ -62,11 +62,7 @@ float distances_around_robot[4];
 struct timeval tval_before, tval_after, tval_result;
 
 int main(int argc, char const *argv[]) {
-    //signal(SIGINT, intHandler);
-    if ( ev3_init() == -1 ) return ( 1 );
-    //engine_init();
-    //sn_init();
-    /* if connected */  
+    init();
     if( bt_connect() == 0 ) {
         printf("Connected!\n");
         bt_transmit();
@@ -80,14 +76,8 @@ int main(int argc, char const *argv[]) {
         exit (EXIT_FAILURE);
     }
     engine_reset();
-}    
-    bt_connect();
-    bt_wait_startmsg();
-    //init();
-    //startDiscovery();
-    //stopmessage();
     return 0;
-}
+}    
 
 void test(){
     float value;
@@ -129,7 +119,7 @@ void startDiscovery(){
     time_since_last_position_update = (unsigned)time(NULL);
     //goToNextUndiscoveredPoint();
     gettimeofday(&tval_before, NULL);
-    bt_send_position();
+    //bt_send_position();
     runForever(regular_speed);
 
     while(1){
@@ -188,7 +178,7 @@ void startDiscovery(){
             
         }
         if(time(NULL) - time_since_last_position_update > TIME_TO_SEND_POS){
-            bt_send_position();
+            //bt_send_position();
             time_since_last_position_update = time(NULL);
         }
         //Sleep(1000);

@@ -13,6 +13,7 @@ int bt_wait_startmsg(char * msg);
 int bt_wait_stopmsg(char * msg);
 int bt_wait_kick(char * msg);
 
+void bt_mapdone();
 void bt_transmit();
 void bt_stop();
 
