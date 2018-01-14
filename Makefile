@@ -6,7 +6,7 @@ default: MainProgram StopProgram
 
 MainProgram: MainProgram.o SensorController.o EngineController.o PositionController.o BluetoothController.o ArmController.o
 
-		$(CC) MainProgram.o EngineController.o SensorController.o PositionController.o BluetoothController.o ArmController.o -pthread -Wall -w -lm -lev3dev-c -lm -lbluetooth -o MainProgram
+		$(CC) MainProgram.o EngineController.o SensorController.o PositionController.o BluetoothController.o ArmController.o -Wall -w -lm -lev3dev-c -lm -lbluetooth -lpthread -o MainProgram
 
 MainProgram.o:
 

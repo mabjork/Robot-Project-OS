@@ -32,25 +32,10 @@ struct PointQueue {
     size_t used;
 };
 
-struct Array{
-    char * array;
-    size_t used;
-    size_t size;
-};
-struct Map{
-    struct Array *rows;
-    size_t height;
-    size_t width;
-    size_t longest_row;
-};
 
-
-typedef struct Map;
-typedef struct Array;
 typedef struct PointQueue;
 
-struct Map neighbour_matrix;
-struct Map map;
+
 struct PointQueue point_queue;
 
 struct timeval tval_before, tval_after, tval_result;

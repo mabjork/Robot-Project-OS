@@ -65,15 +65,29 @@ float distances_around_robot[4];
 struct timeval tval_before, tval_after, tval_result;
 
 int main(int argc, char const *argv[]) {
-    //btcommunication();
     init();
+    if( bt_connect() == 0 ) {
+        printf("Connected!\n");
+        bt_transmit();
+        while(1){
+            bt_check();
+        }
+    }
+    else {
+        fprintf (stderr, "Failed to connect to server...\n");
+        sleep (2);
+        exit (EXIT_FAILURE);
+    }
+    engine_reset();
+    return 0;
+    //init();
     //initArm();
-    startDiscovery();
-
+    //startDiscovery();
     //findLastPoints();
     //goBackToStart();
-    exit(0);
-}
+    //exit(0);
+}    
+
 void next_point_test(){
     last_gyro_read = getGyroDegrees();
     goToNextUndiscoveredPoint();
@@ -160,6 +174,10 @@ void getEngineSpeeds(){
     regular_speed = max_speed * 0.2;
     turn_speed = 0.1 * max_speed;
     check_color_speed = 0.05 * max_speed;
+    //turnLeft(turn_speed,90);
+    //waitForCommandToFinish();
+   
+    
 }
 void initTimes(){
     time_since_last_surroundings_check = (unsigned)time(NULL);
@@ -223,7 +241,7 @@ void startDiscovery(){
         }
         /*
         if(time(NULL) - time_since_last_position_update > TIME_TO_SEND_POS){
-            bt_send_position();
+            //bt_send_position();
             time_since_last_position_update = time(NULL);
         }
         */

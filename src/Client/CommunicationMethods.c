@@ -120,12 +120,6 @@ void mapdone(){
  	string[3] = 0xFF;
  	string[4] = MSG_MAPDONE;
  	write(s, string, 5);
-
-	/**((uint16_t *) string) = msgId++;
-	//int ID; 
-	int src = 14;
-	int dst = 0XFF;
-	int type = MSG_MAPDONE;*/
 }
 
 //OBSTACLE messages must be sent when a robot picks up or drop an obstacle.
