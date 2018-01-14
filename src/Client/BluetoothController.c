@@ -16,8 +16,7 @@
 #include "headers/BluetoothController.h"
 #include "headers/PositionController.h"
 
-#define SERV_ADDR  "9c:ad:97:b1:a7:d2" /*Halvor PC BT*/ /* 38:ca:da:e9:90:6c Halvor Iphone BT */ 
-/* ROBOT BT "00:17:e9:f5:c9:dd" */ /*OS SERVER "dc:53:60:ad:61:90"*/ /*BT SERVER "00:1a:7d:da:71:06*/
+#define SERV_ADDR  "9c:ad:97:b1:a7:d2" /*Halvor PC BT*/ /*OS SERVER "dc:53:60:ad:61:90"*/ /*BT SERVER "00:1a:7d:da:71:06*/
 #define TEAM_ID 14
 
 #define MSG_ACK 0
@@ -89,7 +88,7 @@ int bt_wait_stopmsg(char * msg) {
         printf ("Received Stop message!\n");
         bt_close();
         stopEngines();
-        //position_stop(); STOP SENDING POSITION OR SOMETHING
+        stopp_position_thread = 1;
         return 0;
     } else {
         return -1;
@@ -98,12 +97,11 @@ int bt_wait_stopmsg(char * msg) {
 
 /* WAIT FOR KICK MESSAGE */
 int bt_wait_kick(char * msg){
-
-    if (msg[4] == MSG_KICK) {
+    if (msg[4] == MSG_KICK) { //Should probably also check that TEAMID is ours
         printf ("Received Kick message!\n");
         bt_close();
         stopEngines();
-        //position_stop(); STOP SENDING POSITION OR SOMETHING
+        stopp_position_thread = 1;
         return 0;
     } else {
         return -1;
@@ -114,9 +112,7 @@ int bt_wait_kick(char * msg){
 ssize_t bt_position(){
     char string[58];
     float x, y;
-    int heading;
-    int16_t x1, y1;
-    //get_position_and_heading(&x, &y, &heading); 
+    int16_t x1, y1; 
     x1 = (int16_t)(current_square_x); //- START_SQUARE_X) ;
     y1 = (int16_t)(current_square_y); //- START_SQUARE_Y);
     printf("Sending X: %d, Y:%d\n", x1, y1);
@@ -199,11 +195,9 @@ void bt_mapdone(){
 ssize_t bt_obstacle(uint8_t val){
     char string[58];
     float x, y;
-    //int heading;
-    int16_t x1, y1;
-    //get_position_and_heading(&x, &y, &heading); 
-    x1 = (int16_t)(current_square_x - START_SQUARE_X) ;
-    y1 = (int16_t)(current_square_y - START_SQUARE_Y);
+    int16_t x1, y1; 
+    x1 = (int16_t)(current_square_x);
+    y1 = (int16_t)(current_square_y);
     printf("BT sending obstacle position\n");
     *((uint16_t *) string) = msgId++;
     string[2] = TEAM_ID;
@@ -252,9 +246,6 @@ int bt_check(){
 
     else{
         switch(msg[4]) {
-            //case MSG_ACK :
-            //    bt_ack(msg);
-            //    break;
             case MSG_START :
                 bt_wait_startmsg(msg);
                 break;
@@ -264,9 +255,6 @@ int bt_check(){
             case MSG_KICK :
                 bt_wait_kick(msg);
                 break;
-            //case MSG_BALL :
-            //    bt_recv_ball(msg);
-            //    break;
             default :
                 printf("BT: Invalid message\n");
                 break;

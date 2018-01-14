@@ -67,7 +67,7 @@ struct timeval tval_before, tval_after, tval_result;
 int main(int argc, char const *argv[]) {
     init();
     if( bt_connect() == 0 ) {
-        printf("Connected!\n");
+        printf("Connected to Server!\n");
         bt_transmit();
         while(1){
             bt_check();
@@ -186,7 +186,6 @@ void initTimes(){
 }
 void startDiscovery(){
     
-    //bt_send_position();
     //goToNextUndiscoveredPoint();
     turnNumberOfDegsCorrected(turn_speed,180);
     time_since_last_wall_closenes_check = (unsigned)time(NULL);
@@ -241,7 +240,6 @@ void startDiscovery(){
         }
         /*
         if(time(NULL) - time_since_last_position_update > TIME_TO_SEND_POS){
-            //bt_send_position();
             time_since_last_position_update = time(NULL);
         }
         */
@@ -442,12 +440,3 @@ void goToNextUndiscoveredPoint(){
 int isArrivedAtPoint(){
     return 0;
 }
-
-
-
-
-
-
-
-
-
