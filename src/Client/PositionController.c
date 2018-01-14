@@ -5,13 +5,16 @@
 #include <time.h>
 #include <math.h>
 #include "headers/PositionController.h"
+#include "headers/EngineController.h"
+#include "headers/SensorController.h"
+#include <sys/time.h>
 
 #define CalcHeading(deg) ((deg + HEADING) % 360)
 #define CalcSquareX (int)((POS_X)/SQUARE_WIDTH)
 #define CalcSquareY (int)((POS_Y)/SQUARE_HEIGHT)
 #define SQUARE_WIDTH 5
 #define SQUARE_HEIGHT 5
-
+#define Sleep( msec ) usleep(( msec ) * 1000 )
 enum{
     UP,
     LEFT,
@@ -19,12 +22,7 @@ enum{
     RIGHT
 };
 
-double POS_X;
-double POS_Y;
-double REL_POS_X;
-double REL_POS_Y;;
-float INITIAL_HEADING;
-float HEADING;
+
 
 struct PointQueue {
     int ** queue;
@@ -53,50 +51,69 @@ struct Map neighbour_matrix;
 struct Map map;
 struct PointQueue point_queue;
 
+struct timeval tval_before, tval_after, tval_result;
 
 
-float getInitialHeading(){
-    return INITIAL_HEADING;
-}
-void setCurrentHeading(float heading){
-    printf("Current heading is %f\n", heading);
-    HEADING = heading;
+void updateCurrentHeading(float change){
+    HEADING += change;
+    printf("Changed heading : %f\n",HEADING);
+    
+    if(HEADING < 0){
+        printf("Heading is negative\n");
+        float p1 = HEADING / 360;
+        printf("The float %f\n",p1);
+
+        int neg_mod = (int)abs(floorf(p1));
+        printf("This is the mod : %i\n",neg_mod);
+        HEADING += neg_mod * 360;
+    }else{
+        HEADING = (int)HEADING % 360;
+    }
+    printf("Current heading is %f\n",HEADING);
 }
 float getCurrentHeading(){
     return HEADING;
 }
-void initPositionController(float initialHeading){
-    START_SQUARE_X = 1;
-    START_SQUARE_Y = 1;
-    current_square_x = 1;
-    current_square_y = 1;
+void initPositionController(float initialHeading,int start_x,int start_y){
+    START_SQUARE_X = start_x;
+    START_SQUARE_Y = start_y;
+    current_square_x = start_x;
+    current_square_y = start_y;
+    printf("This is the recived heading: %f\n",initialHeading);
     INITIAL_HEADING = initialHeading;
-    initMap(&map,3);
-    POS_X = 7.5;
-    POS_Y = 7.5;
+    HEADING = initialHeading;
+    printf("Init heading value: %f\n",initialHeading);
+
+    initMap(&map,current_square_x+2,current_square_y+2);
+    POS_X = current_square_x * SQUARE_WIDTH + SQUARE_WIDTH/2;
+    POS_Y = current_square_y * SQUARE_HEIGHT + SQUARE_HEIGHT/2;
     REL_POS_X = 0;
     REL_POS_Y = 0;
-    updateMap(1,1,'S');
+    updateMap(current_square_x,current_square_y,'S');
     printMatrix(&map);
-    initQueue(9);
+    initQueue(100);
 }
 
 void updateRobotPosition(double distance){
     float rad = (HEADING-INITIAL_HEADING) * M_PI / 180;
     double dx;
     double dy;
-    if(HEADING <= 90){
-        dx = fabs(distance * cos(rad));
-        dy = fabs(distance * sin(rad));
-    }else if(HEADING <= 180) {
-        dx = -fabs(distance * cos(rad));
-        dy = fabs(distance * sin(rad));
-    }else if (HEADING <= 270){
-        dx = -fabs(distance * cos(rad));
-        dy = -fabs(distance * sin(rad));
+    if(HEADING < 90){
+        printf("Heading is less then 90\n");
+        dy = fabs(distance * cos(rad));
+        dx = fabs(distance * sin(rad));
+    }else if(HEADING < 180) {
+        printf("Heading is less then 180\n");
+        dy = fabs(distance * cos(rad));
+        dx = -fabs(distance * sin(rad));
+    }else if (HEADING < 270){
+        printf("Heading is less then 270\n");
+        dy = -fabs(distance * cos(rad));
+        dx = -fabs(distance * sin(rad));
     }else{
-        dx = fabs(distance * cos(rad));
-        dy = -fabs(distance * sin(rad));
+        printf("Heading is less then 360\n");
+        dy = -fabs(distance * cos(rad));
+        dx = fabs(distance * sin(rad));
     }
     REL_POS_X += dx;
     REL_POS_Y += dy;
@@ -165,6 +182,7 @@ void updateMap(int x,int y,char value){
     printf("Map height: %i, Map width: %i\n",map.height,map.width);
     printf("x is: %i, y is: %i\n",x,y);
     if(x < 0 || y < 0 || map.width < x || map.height < y)return;
+    //y = map.height - 1 - y;
     printf("Updating map\n");
     struct Array *rows = map.rows;
     struct Array row = rows[y];
@@ -175,7 +193,31 @@ void updateMap(int x,int y,char value){
     //printMatrix(&map);
     
 }
+void getSquareInFront(int distance,int * x,int *y){
+    float rad = (HEADING-INITIAL_HEADING) * M_PI / 180;
+    double dx;
+    double dy;
+    if(HEADING <= 90){
+        dx = -fabs(distance * cos(rad));
+        dy = -fabs(distance * sin(rad));
+    }else if(HEADING <= 180) {
+        dx = -fabs(distance * cos(rad));
+        dy = fabs(distance * sin(rad));
+    }else if (HEADING <= 270){
+        dx = fabs(distance * cos(rad));
+        dy = fabs(distance * sin(rad));
+    }else{
+        dx = fabs(distance * cos(rad));
+        dy = -fabs(distance * sin(rad));
+    }
+    double pos_x = POS_X + dx;
+    double pos_y = POS_Y + dy;
+    int sq_x = (int)pos_x/SQUARE_WIDTH;
+    int sq_y = (int)pos_y/SQUARE_HEIGHT;
 
+    *x = sq_x;
+    *y = sq_y;
+}
 void initQueue(size_t initialSize){
     point_queue.queue = (int *)malloc(initialSize * sizeof(int));
     point_queue.used = 0;
@@ -185,12 +227,14 @@ void appentToQueue(int* point){
     printf("Appending %i,%i\n",point[0],point[1]);
     if(point_queue.size == point_queue.used){
         point_queue.size *= 2;
-        point_queue.queue = (int *)realloc(point_queue.queue,point_queue.size * sizeof(int));
+        printf("Next size is %i\n",point_queue.size);
+        point_queue.queue = (int *)realloc(point_queue.queue,point_queue.size* sizeof(int));
     }
 
     point_queue.queue[point_queue.used] = point;
     point_queue.used += 1;
     printf("Used %i\n", point_queue.used);
+    printf("Point added %i,%i\n",point_queue.queue[point_queue.used-1][0],point_queue.queue[point_queue.used-1][1]);
     
 }
 int * popFromQueue(){
@@ -199,11 +243,12 @@ int * popFromQueue(){
         point_queue.used--;
         point = point_queue.queue[point_queue.used];
         printf("This shuld be point x %i\n",*(point));
+        printf("This shuld be point y %i\n",*(point+1));
         return point;
         
         
     }
-    printf("This shuld be point y %i\n",*(point+1));
+    
     return point;
 }
 
@@ -231,11 +276,11 @@ void freeArray(struct Array *a) {
   a->array = NULL;
   a->used = a->size = 0;
 }
-void initMap(struct Map *m,size_t initialHeight){
-    m->rows = (struct Array *)malloc(initialHeight * sizeof(struct Array));
+void initMap(struct Map *m,size_t initialWidth,size_t initialHeight){
+    m->rows = (struct Array *)malloc(((initialHeight)*(initialWidth)) * sizeof(struct Array));
     m->height = initialHeight;
-    m->width = initialHeight;
-    for(int i = 0; i<initialHeight; i++){
+    m->width = initialWidth;
+    for(int i = 0; i<initialWidth; i++){
         struct Array row;
         initArray(&row,m->width);
         m->rows[i] = row;
@@ -258,9 +303,7 @@ void insertIntoMap(struct Map *m,int x,int y,char value){
     }
     row.array[x] = value;
 }
-void moveElementsUp(struct Map *m){
 
-}
 void addRowLower(struct Map *m){
     m->height += 1;
     struct Array row;
@@ -401,10 +444,12 @@ void findPoints(){
         row = rows[i];
         for(int j = 0 ; j< row.size;j++){
             if (row.array[j] == 'U'){
-                
-                int point[2] = {i,j};
+                int *point = malloc(2*sizeof(int));
+                point[0] =j;
+                point[1] =i;
                 printf("Found point %i,%i\n",point[0],point[1]);
                 appentToQueue(point);
+                
             }
         }
     }
@@ -416,12 +461,13 @@ void getDistanceAndDirectionToPoint(int x ,int y,double *diff_x,double *diff_y,f
     printf("Target x %i\n",x);
     int target_y = y;
     printf("Target y %i\n",y);
-    *diff_x = POS_X - target_x;
-    *diff_y = POS_Y - target_y;
+    *diff_x = (target_x*SQUARE_WIDTH+SQUARE_WIDTH/2) - POS_X;
+    *diff_y = (target_y*SQUARE_HEIGHT+SQUARE_HEIGHT/2) - POS_Y;
     printf("getDistance diff x %lf\n",*diff_x);
     printf("getDistance diff y %lf\n",*diff_y);
     printf("Heading is %f\n",HEADING);
-    *target_angle = HEADING - atan(*diff_y / (*diff_x));
+    printf("Arctan %f\n",atan(1)*180/M_PI);
+    *target_angle = ceil((atan(*diff_y / *diff_x) * 180 / M_PI) - HEADING);
     printf("Target angle : %f\n",*target_angle);
 }
 
@@ -436,32 +482,61 @@ int main(int argc, char const *argv[]) {
     int x;
     int y;
     
-    initPositionController(0);
+    initPositionController(0,4,4);
+    printMatrix(&map);
     findPoints();
     printQueue(&point_queue);
-    //sortPositionsBasedOnDistance();
+    sortPositionsBasedOnDistance();
     printf("Used positions %i\n",point_queue.used);
     point = popFromQueue();
     x = *(point);
     y = *(point + 1);
+    free(point);
     printf("Used positions %i\n",point_queue.used);
     printf("This is closest x: %i , This is closest y: %i \n",x,y);
     point = popFromQueue();
     x = *(point);
     y = *(point + 1);
+    free(point);
     printf("Used positions %i\n",point_queue.used);
     printf("This is closest x: %i , This is closest y: %i \n",x,y);
     point = popFromQueue();
     x = *(point);
     y = *(point + 1);
+    free(point);
     printf("Used positions %i\n",point_queue.used);
     printf("This is closest x: %i , This is closest y: %i \n",x,y);
     point = popFromQueue();
     x = *(point);
     y = *(point + 1);
+    free(point);
     printf("Used positions %i\n",point_queue.used);
     printf("This is closest x: %i , This is closest y: %i \n",x,y);
-    /*
+    point = popFromQueue();
+    x = *(point);
+    y = *(point + 1);
+    free(point);
+    printf("Used positions %i\n",point_queue.used);
+    printf("This is closest x: %i , This is closest y: %i \n",x,y);
+    point = popFromQueue();
+    x = *(point);
+    y = *(point + 1);
+    free(point);
+    printf("Used positions %i\n",point_queue.used);
+    printf("This is closest x: %i , This is closest y: %i \n",x,y);
+    point = popFromQueue();
+    x = *(point);
+    y = *(point + 1);
+    free(point);
+    printf("Used positions %i\n",point_queue.used);
+    printf("This is closest x: %i , This is closest y: %i \n",x,y);
+    point = popFromQueue();
+    x = *(point);
+    y = *(point + 1);
+    free(point);
+    printf("Used positions %i\n",point_queue.used);
+    printf("This is closest x: %i , This is closest y: %i \n",x,y);
+    
     setCurrentHeading(45);
     updateRobotPosition(5);
     setCurrentHeading(90);
@@ -500,6 +575,14 @@ int main(int argc, char const *argv[]) {
     
 }
 */
+/*
+int main(int argc, char const *argv[]) {
+    initPositionController(90,5,3);
+    updateRobotPosition(5);
+    updateCurrentHeading(90);
+    updateRobotPosition(5);
+}
+*/
 
 
 
@@ -509,7 +592,7 @@ void printMatrix(struct Map *m){
     struct Array *rows = m-> rows;
     printf("Map height %i\n",m->height);
     
-    for(int i = 0;i<m->height;i++){
+    for(int i = m->height-1;i > -1;i--){
         row = rows[i];
         
         for(int j = 0;j < m->width; j++){
@@ -553,18 +636,15 @@ void sortPositionsBasedOnDistance(){
             y2 = *(next_point + 1);
             d2 = sqrt( pow(x2-POS_X,2) + pow(y2-POS_Y,2));
 
-            if(d1 > d2){
+            if(d1 < d2){
                 point_queue.queue[j] = next_point;
                 point_queue.queue[j+1] = point;
             }
 
         }
-        
-        
+            
     }
     
-
-
 }
 int calcSquareX(double x){
     if(x < 0){
@@ -578,6 +658,61 @@ int calcSquareY(double y){
     }
     return ceil(y/SQUARE_HEIGHT);
 }
+void *updatePositionInThread(void *args){
+    printf("Starting thread\n");
+    gettimeofday(&tval_before, NULL);
+    last_gyro_read = getGyroDegrees();
+    while(!stopp_position_thread){
+        printf("Updating position\n");
+        float gyro_read = getGyroDegrees();
+        float heading_diff = gyro_read - last_gyro_read;
+        last_gyro_read = gyro_read;
+        printf("Heading diff %f",heading_diff);
+        measureAndUpdateTraveledDistance(current_speed,&heading_diff);
+        if(fabs(gyro_read) >= 1){
+            //calibrateGyro();
+        }
+        gettimeofday(&tval_before, NULL);
+        Sleep(250);
+    }
+    pthread_join(position_tid, NULL);
+}
+
+void startPositionUpdateThread(){
+    printf("Starting position update thread\n");
+    int *arg = malloc(sizeof(int));
+    pthread_mutex_init(&position_lock, NULL);
+    stopp_position_thread = 0;
+    pthread_mutex_unlock(&position_lock);
+    pthread_create(&position_tid, NULL, updatePositionInThread, arg);
+    printf("Position thread created\n");
+}
 
 
 
+double calculateDistance(int speed,struct timeval *time){
+    long time_in_usec = (time->tv_sec*1000000.0 + time->tv_usec);
+    //printf("Time in micro seconds: %d\n",time_in_usec);
+    //Distance in counts each usec;
+    double counts = speed*time_in_usec/1000000.000;
+    double wheel_radius = WHEEL_DIAMETER/2;
+    //Distance in cm.
+    double distance = counts * wheel_radius * M_PI / 360 ;
+    return distance;
+}
+
+void measureAndUpdateTraveledDistance(int speed,float *heading){
+    pthread_mutex_init(&position_lock, NULL);
+    updateCurrentHeading(-heading[0]);
+    if(speed = 0){
+        pthread_mutex_unlock(&position_lock);
+        return;
+    }
+    gettimeofday(&tval_after, NULL);
+    timersub(&tval_after, &tval_before, &tval_result);
+    double traveled_distance = calculateDistance(speed,&tval_result);
+    printf("Traveled distance %lf\n", traveled_distance);
+    updateRobotPosition(traveled_distance);
+    pthread_mutex_unlock(&position_lock);
+    
+}

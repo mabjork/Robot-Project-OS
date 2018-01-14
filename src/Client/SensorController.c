@@ -56,30 +56,33 @@ int recognizeObject(){
   obj_color = getColor();
   //Black color, recognized as non-moveable obj
   if ( obj_color == 1){
-    printf( "Black detected. This is a non-moveable object.");
+    printf( "Black detected. This is a non-moveable object.\n");
     return 1;
   }
 
   //Red color detected, recognized as moveable obj
   else if ( obj_color == 5){
-    printf( "Red detected. This is a moveable object.");
+    printf( "Red detected. This is a moveable object.\n");
     return 2;
   }
 
   else if( obj_color == 2){
-    printf("Blue detected. This is a moveable object.");
+    printf("Blue detected. This is a moveable object.\n");
     return 2;
   }
   
   //Recognizes nothing. This may be changed
-  else { return 0; }
+  else { 
+    printf("No color detected.\n");
+    return 0; 
+    }
 
 }
 
 
 //# GYRO SENSOR -------------------------------------
 
-float getGyroDegress(){
+float getGyroDegrees(){
   float val;
   uint8_t sn_gyro;
   if ( ev3_search_sensor( LEGO_EV3_GYRO, &sn_gyro, 0 )) {
@@ -87,7 +90,7 @@ float getGyroDegress(){
       val = 0;
     }
     //printf( "\r(%d) \n", val);
-    fflush( stdout );
+    //fflush( stdout );
 
   }
   return val;
@@ -97,9 +100,12 @@ float getGyroDegress(){
 void calibrateGyro(){
 
   uint8_t sn_gyro;
-  set_sensor_mode( sn_gyro, "GYRO-RATE" );
-  set_sensor_mode( sn_gyro, "GYRO-ANG" );
-  Sleep(100);
+  if ( ev3_search_sensor( LEGO_EV3_GYRO, &sn_gyro, 0 )) {
+      set_sensor_mode( sn_gyro, "GYRO-RATE" );
+      set_sensor_mode( sn_gyro, "GYRO-ANG" );
+  }
+  
+  //Sleep(100);
 
 }
 
