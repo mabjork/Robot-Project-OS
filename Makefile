@@ -36,7 +36,9 @@ StopProgram: EngineController.o SensorController.o
 		$(CC) StopProgram.o EngineController.o SensorController.o -pthread -Wall -w -lm -lev3dev-c -o StopProgram
 
 PositionTest:
-		$(CC) -w -o PositionTest src/Client/PositionController.c -lm
+		$(CC) $(CFLAGSL) -c src/Client/SensorController.c -o SensorController.o
+		$(CC) $(CFLAGSL) -c src/Client/PositionController.c -o PositionController.o
+		$(CC) SensorController.o PositionController.o -w -pthread -lm -o PositionTest
 
 
 local: 

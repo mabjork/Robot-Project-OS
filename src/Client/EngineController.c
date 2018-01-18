@@ -83,7 +83,6 @@ int initEngines(){
     set_tacho_ramp_up_sp(sn_engineM, 1000);
     set_tacho_ramp_down_sp(sn_engineM, 1000);
     multi_set_tacho_stop_action_inx( sn_engineLRM, TACHO_HOLD );
-
     return 0;
 }
 
@@ -113,6 +112,9 @@ void runDistance(int speed,double distance){
     runTimed(speed,run_time);
 }
 
+/**
+ * Runs forever until the stopEngines() method is called.
+ * */
 void *runForever(void *args)
 {
     int speed = *((int *) args);
@@ -143,11 +145,31 @@ void *runForever(void *args)
     pthread_join(engine_tid, NULL);
     //return;
 }
+/**
+ * Starts a thread that is used to correct the error created by the engines running at different speeds.
+ * */
+void runForeverCorrected(int speed){
+    int *arg = malloc(sizeof(int));
+    pthread_mutex_init(&engine_lock, NULL);
+    stopp_engine_thread = 0;
+    current_speed = speed;
+    
+    pthread_mutex_unlock(&engine_lock);
+    *arg = speed;
+    pthread_create(&engine_tid, NULL, runForever, arg);
+    printf("Thread created\n");
+}
+
+
 void runToRelPos( int speed,double distance, int heading_change){  
-    turn2(heading_change);
+    turnNumberOfDegsCorrected(0,heading_change);
     runDistance(speed,distance);
     
 }
+
+/**
+ * Much like the runForever() mehtod, but runs for a predetermined amount of time.
+ * */
 void runTimed( int speed, int mseconds )
 {
     pthread_mutex_init(&engine_lock, NULL);
@@ -244,14 +266,16 @@ void raiseArm(){
 
 void lowerArm(){
     int degree = DEGREE_TO_COUNT(-60);
-    set_tacho_speed_sp( sn_engineM, max_speed * 0.01);
+    set_tacho_speed_sp( sn_engineM, max_speed * 0.25);
     set_tacho_position_sp( sn_engineM,degree);
     set_tacho_command_inx( sn_engineM, TACHO_RUN_TO_REL_POS );
 }
 
  
 
-
+/**
+ * Turn x number of degrees, where  x<0 means right turn and x>0 means left turn.
+ * */
 void turnNumberOfDegsCorrected(int speed,int x){
 
     stopEngines();
@@ -315,8 +339,8 @@ void turnNumberOfDegsCorrected(int speed,int x){
     }
     Sleep(200);
     pthread_mutex_init(&engine_lock, NULL);
-    calibrateGyro();
-    last_gyro_read = getGyroDegrees();
+    //calibrateGyro();
+    //last_gyro_read = getGyroDegrees();
     pthread_mutex_unlock(&engine_lock);
     // HALT!
     multi_set_tacho_polarity_inx( sn_engineLR, TACHO_NORMAL);
@@ -326,6 +350,9 @@ void turnNumberOfDegsCorrected(int speed,int x){
     return;
 }
 
+/**
+ * Uses the current heading to determine the shortest turn direction to the target, and then turns the difference.
+ * */
 void turnToDegCorrected(int speed,int target){
     printf("LOLOL Should turn to %i\n",target);
     int current_deg = (int)HEADING;
@@ -414,8 +441,8 @@ void turnToDegCorrected(int speed,int target){
     }
     Sleep(200);
     pthread_mutex_init(&engine_lock, NULL);
-    calibrateGyro();
-    last_gyro_read = getGyroDegrees();
+    //calibrateGyro();
+    //last_gyro_read = getGyroDegrees();
     pthread_mutex_unlock(&engine_lock);
     
     // HALT!
@@ -426,98 +453,6 @@ void turnToDegCorrected(int speed,int target){
     return;
 }
 
-
-int degToDist(int deg){
-    return M_PI * WHEEL_DIAMETER * deg /360;
-}
-
-void turn2( int x)
-{
-    stopEngines();
-    printf("Turning2 by: %d\n", x);
-    stop_turn = 0;
-
-    if ( x > 0 ) {
-        set_tacho_polarity_inx( sn_engineL, TACHO_INVERSED);
-        set_tacho_polarity_inx( sn_engineR, TACHO_NORMAL);
-    } else  if ( x < 0 ) {
-        set_tacho_polarity_inx( sn_engineL, TACHO_NORMAL);
-        set_tacho_polarity_inx( sn_engineR, TACHO_INVERSED);
-    } else {
-        return;
-    }
-
-    multi_set_tacho_stop_action_inx( sn_engineLR, TACHO_HOLD );
-    multi_set_tacho_speed_sp( sn_engineLR, 200);
-    multi_set_tacho_command_inx( sn_engineLR, TACHO_STOP );
-
-    // Active
-
-    int current_angle = -getGyroDegrees();
-    int target_angle = current_angle + x;
-
-    // Start the active engine
-    multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
-
-    // Gyro control loop
-    int deg_left = target_angle - current_angle;
-    int deg_left_abs = abs(deg_left);
-    int stage = 3;
-    while (stop_turn == 0 && ((deg_left > 0 && x > 0 ) || ((deg_left < 0) && x < 0))) { // TODO: Check gyro value +/-
-        current_angle = -getGyroDegrees();
-        deg_left = target_angle - current_angle;
-        deg_left_abs = abs(deg_left);
-
-        printf("TURN: T: %d C: %d Deg_Left: %d\n",target_angle,current_angle,deg_left);
-
-        if ( stage == 1 && 0 < deg_left_abs && deg_left_abs <= 10 ) {
-            multi_set_tacho_speed_sp( sn_engineLR, 20);
-            multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
-            stage--;
-        } else if ( stage == 2 && deg_left_abs <= 25 ) {
-            multi_set_tacho_speed_sp( sn_engineLR, 50);
-            multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
-            stage--;
-        } else if ( stage == 3 && deg_left_abs <= 35 ) {
-            multi_set_tacho_speed_sp( sn_engineLR, 150);
-            multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
-            stage--;
-        }
-        Sleep(50);
-    }
-    Sleep(200);
-    pthread_mutex_init(&engine_lock, NULL);
-    calibrateGyro();
-    last_gyro_read = getGyroDegrees();
-    pthread_mutex_unlock(&engine_lock);
-    // HALT!
-    multi_set_tacho_polarity_inx( sn_engineLR, TACHO_NORMAL);
-    multi_set_tacho_command_inx( sn_engineLR, TACHO_STOP);
-    Sleep(100); 
-
-    return;
-}
-void get_encoders_values(int * disp_left, int * disp_right){
-    get_tacho_position(sn_engineL, disp_left);
-    get_tacho_position(sn_engineR, disp_right);
-}
-
-void adjust_speed_by(int err){
-    set_tacho_speed_sp(sn_engineR, max_speed+(err*1));
-    set_tacho_speed_sp(sn_engineL, max_speed-(err*1));
-    multi_set_tacho_command_inx( sn_engineLR, TACHO_RUN_FOREVER );
-}
-void runForeverCorrected(int speed){
-    int *arg = malloc(sizeof(int));
-    pthread_mutex_init(&engine_lock, NULL);
-    stopp_engine_thread = 0;
-    current_speed = speed;
-    
-    pthread_mutex_unlock(&engine_lock);
-    *arg = speed;
-    pthread_create(&engine_tid, NULL, runForever, arg);
-    printf("Thread created\n");
-}
 
 void turnWhileCheckDistance(int x,int *heading,int *dist){
     stopEngines();

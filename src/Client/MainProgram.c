@@ -19,6 +19,7 @@
 #define COLOR_CHECK_DISTANCE 100
 #define TIME_TO_CHECK_WALL_CLOSENES 3
 #define TIME_TO_SEND_POS 1
+#define RELEASE_OBJECT_TIME 60
 
 
 
@@ -56,6 +57,7 @@ int check_color_speed;
 unsigned time_since_last_surroundings_check;
 unsigned time_since_last_wall_closenes_check;
 unsigned time_since_last_position_update;
+unsigned game_start_time;
 int discovering;
 
 
@@ -66,6 +68,10 @@ struct timeval tval_before, tval_after, tval_result;
 
 int main(int argc, char const *argv[]) {
     init();
+    startDiscovery();
+    Sleep(1000);
+    //distance_test();
+    /*
     if( bt_connect() == 0 ) {
         printf("Connected!\n");
         bt_transmit();
@@ -78,79 +84,11 @@ int main(int argc, char const *argv[]) {
         sleep (2);
         exit (EXIT_FAILURE);
     }
-    engine_reset();
+    */
+    //engine_reset();
     return 0;
-    //init();
-    //initArm();
-    //startDiscovery();
-    //findLastPoints();
-    //goBackToStart();
-    //exit(0);
 }    
 
-void next_point_test(){
-    last_gyro_read = getGyroDegrees();
-    goToNextUndiscoveredPoint();
-    float current_heading = getGyroDegrees();
-    float heading_diff = current_heading - last_gyro_read;
-    printf("Heading diff %f\n",heading_diff);
-    updateCurrentHeading(-heading_diff);
-    turnToInitialHeading();
-}
-void thread_test(){
-    /*
-    runForeverCorrected(regular_speed);
-    Sleep(10000);
-    stopEngines();
-    Sleep(5000);
-    runForeverCorrected(regular_speed);
-    Sleep(10000);
-    stopEngines();
-    */
-    turnNumberOfDegsCorrected(turn_speed,90);
-    Sleep(3000);
-    turnNumberOfDegsCorrected(turn_speed,90);
-    stopp_position_thread = 1;
-
-}
-
-void recognize_test(){
-    float current_heading = getGyroDegrees();
-    gettimeofday(&tval_before, NULL);
-    printf("Starting test\n");
-    int object = whatIsObstacle();
-    measureAndUpdateTraveledDistance(check_color_speed,&current_heading);
-    int x,y;
-    getSquareInFront(COLOR_CHECK_DISTANCE/10,&x,&y);
-    printf("This is x: %i , This is y: %i\n",x,y);
-}
-void test(){
-    turn2(90);
-    float init_deg = INITIAL_HEADING;
-    float current = getGyroDegrees();
-    printf("Initial heading : %f\n",init_deg);
-    printf("Current heading : %f\n",current);
-    updateCurrentHeading(current);
-    float new = getCurrentHeading();
-    printf("Updated heading : %f\n", new);
-    calibrateGyro();
-    current = getGyroDegrees();
-    printf("Current heading : %f\n",current);
-    Sleep(1000);
-    turn2(90);
-    init_deg = INITIAL_HEADING;
-    current = getGyroDegrees();
-    printf("Initial heading : %f\n",init_deg);
-    printf("Current heading : %f\n",current);
-    updateCurrentHeading(current);
-    new = getCurrentHeading();
-    printf("Updated heading : %f\n", new);
-    calibrateGyro();
-    current = getGyroDegrees();
-    printf("Current heading : %f\n",current);
-
-    
-}
 
 
 void init(){
@@ -162,41 +100,95 @@ void init(){
     printf("Sensors initiated\n");
     calibrateGyro();
     printf("Gyro calibrated\n");
-    initPositionController(90,0,0);
+    initPositionController(90,5,4);
     printf("Position controller initiated\n");
     getEngineSpeeds();
     initTimes();
     discovering = 1;
     startPositionUpdateThread();
+    //initArm();
 }
+
 void getEngineSpeeds(){
     max_speed = getMaxSpeed();
     regular_speed = max_speed * 0.2;
     turn_speed = 0.1 * max_speed;
-    check_color_speed = 0.05 * max_speed;
-    //turnLeft(turn_speed,90);
-    //waitForCommandToFinish();
-   
+    check_color_speed = 0.1 * max_speed;
     
 }
+
 void initTimes(){
     time_since_last_surroundings_check = (unsigned)time(NULL);
     time_since_last_wall_closenes_check = (unsigned)time(NULL);
     time_since_last_position_update = (unsigned)time(NULL);
+    game_start_time = (unsigned)time(NULL);
 }
+/**
+ * Stage one in the discovery algorithm. Works its way from side to side up the course.
+ * */
 void startDiscovery(){
-    
-    //bt_send_position();
-    //goToNextUndiscoveredPoint();
-    turnNumberOfDegsCorrected(turn_speed,180);
+
+    turnNumberOfDegsCorrected(turn_speed,-90);
+    //correctAngle();
     time_since_last_wall_closenes_check = (unsigned)time(NULL);
     runForeverCorrected(regular_speed);
     while(discovering){
         int is_running = isRunning();       
         float distance = getDistanceSensorValue();
         printf("Distance sensor value: %f\n", distance);
-        //printf("Time since last check %u\n",(time(NULL)-time_since_last_wall_closenes_check));
+        if(time(NULL) - game_start_time >= 240){
+            break;
+        }
+        if(time(NULL) - game_start_time >= RELEASE_OBJECT_TIME){
+            armReleasingMovable();
+            turnAndContinue();
+        }
+        if((distance < OBJECT_TO_CLOSE && is_running)){
+            
+            printf("Object to close\n");
+            int obstacle = whatIsObstacle();
+            float close_dist = getDistanceSensorValue();
+            setMapPointValue(obstacle,close_dist);
+            Sleep(50);
+            backAwayTimed(regular_speed,500);
+            Sleep(50);
+            turnAndContinue();
+            Sleep(50);
+            correctAngle();
+            Sleep(50);
+            runForeverCorrected(regular_speed);
+            time_since_last_wall_closenes_check = time(NULL);
+        }
+        if(current_square_x == 0 || current_square_y == 0){
+            if(HEADING >= 135 && HEADING <= 315){
+                turnAndContinue();
+                Sleep(50);
+                correctAngle();
+                runDistance(regular_speed,5);
+                runForeverCorrected(regular_speed);
+            }
+            
+            
+        }
         
+        if(time(NULL) - time_since_last_wall_closenes_check > TIME_TO_CHECK_WALL_CLOSENES){
+                checkIfCloseToWall();
+                time_since_last_wall_closenes_check = time(NULL);
+
+            }
+        Sleep(50);
+    }
+    stopEngines();
+    findLastPoints();
+}
+/**
+ * Stage two of the discovery algorithm. Finds remainding points and discoveres them sequentially.
+ * */
+void findLastPoints(){
+    goToNextUndiscoveredPoint();
+    while(discovering){
+        int is_running = isRunning();       
+        float distance = getDistanceSensorValue();
         if((distance < OBJECT_TO_CLOSE && is_running)){
             
             printf("Object to close\n");
@@ -206,53 +198,34 @@ void startDiscovery(){
             Sleep(100);
             backAwayTimed(regular_speed,500);
             Sleep(100);
-            //correctAngle();
+            correctAngle();
             Sleep(100);
-            /*
-            turnNumberOfDegsCorrected(turn_speed,90);
-            checkIfCloseToWall();
-            runForeverCorrected(regular_speed);
-            
-            */
             turnAndContinue();
+            correctAngle();
             time_since_last_wall_closenes_check = time(NULL);
         }
         if(current_square_x <= 0 || current_square_y <= 0){
             if(HEADING < 360 && HEADING > 180){
-                turnAndContinue();
+                //turnAndContinue();
             }
             
         }
         if(isArrivedAtPoint() == 1){
-            turnToInitialHeading();
+            //turnToInitialHeading();
             //checkSouroundings();
             goToNextUndiscoveredPoint();
         }
         else{
 
             if(time(NULL) - time_since_last_wall_closenes_check > TIME_TO_CHECK_WALL_CLOSENES){
-                checkIfCloseToWall();
+                //checkIfCloseToWall();
                 time_since_last_wall_closenes_check = time(NULL);
-
-            }else{
 
             }
             
         }
-        /*
-        if(time(NULL) - time_since_last_position_update > TIME_TO_SEND_POS){
-            //bt_send_position();
-            time_since_last_position_update = time(NULL);
-        }
-        */
         Sleep(100);
-    }
-    stopEngines();
-    exit(0);
-}
-void findLastPoints(){
-    while(discovering){
-        goToNextUndiscoveredPoint();
+
     }
 }
 void goBackToStart(){
@@ -278,10 +251,11 @@ void turnAndContinue(){
         runDistance(regular_speed,10);
         Sleep(500);
         turnNumberOfDegsCorrected(turn_speed,90 * turn_direction);
+        
 
     }
     stopEngines();
-    runForeverCorrected(regular_speed);
+    //runForeverCorrected(regular_speed);
     turn_direction = turn_direction * (-1);
 
 }
@@ -299,7 +273,6 @@ void correctAngle(){
     }
 }
 
-//TODO: Update the map with the value for the position.
 void setMapPointValue(int obstacle,float distance){
     int x;
     int y;
@@ -312,7 +285,7 @@ void setMapPointValue(int obstacle,float distance){
         
     }
 }
-//TODO: Make this method discover what the obstable is.
+
 int whatIsObstacle(){
     stopEngines();
     Sleep(100);
@@ -335,7 +308,9 @@ int whatIsObstacle(){
     Sleep(50);
     float dist1 = getDistanceSensorValue();
     Sleep(50);
-    turnNumberOfDegsCorrected(turn_speed,-50);
+    turnNumberOfDegsCorrected(turn_speed,-25);
+    Sleep(50);
+    turnNumberOfDegsCorrected(turn_speed,-25);
     Sleep(50);
     float dist2 = getDistanceSensorValue();
     Sleep(50);
@@ -402,11 +377,11 @@ void checkIfCloseToWall(){
     }
     else if(distanceLeft <= SHOULD_AVOID){
         printf("Close on the left, correct right\n");
-        turnNumberOfDegsCorrected(turn_speed,-10);
+        avoidObstacle(-20);
     }
     else if(distanceRight <= SHOULD_AVOID){
         printf("Close on the right, correct left\n");
-        turnNumberOfDegsCorrected(turn_speed,10);
+        avoidObstacle(20);
         
     }else{
         printf("Continue foreward\n");
@@ -424,6 +399,7 @@ void turnToInitialHeading(){
 
 void goToNextUndiscoveredPoint(){
     findPoints();
+    sortPositionsBasedOnDistance();
     int * point;
     point = popFromQueue();
     int x = *(point);
@@ -441,6 +417,33 @@ void goToNextUndiscoveredPoint(){
 
 int isArrivedAtPoint(){
     return 0;
+}
+
+void avoidObstacle(int heading_diff){
+    turnNumberOfDegsCorrected(turn_speed,heading_diff);
+    runForeverCorrected(regular_speed);
+    int aborted = checkIfObjectClose(1500);
+    stopEngines();
+    turnNumberOfDegsCorrected(turn_speed,-heading_diff);
+    if(aborted == 1){
+        turnNumberOfDegsCorrected(turn_speed,180);
+    }
+    //runForever(regular_speed);
+}
+int checkIfObjectClose(int msec){
+    int sleep_time = 50;
+    if (msec > 0){
+        while(msec > 0) {
+            float close_dist = getDistanceSensorValue();
+            if (close_dist <= OBJECT_TO_CLOSE){
+                return 1;
+            }
+            Sleep(sleep_time);
+            msec -= sleep_time;
+        }
+    }
+    return 0;
+    
 }
 
 

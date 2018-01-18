@@ -49,6 +49,7 @@ void findPoints();
 void getDistanceAndDirectionToPoint(int x,int y,double *diff_x,double *diff_y,float *target_angle);
 void getSquareInFront(int distance,int * x,int *y);
 void startPositionUpdateThread();
+void measureAndUpdateTraveledDistance(int speed,float *heading);
 
 
 #endif
