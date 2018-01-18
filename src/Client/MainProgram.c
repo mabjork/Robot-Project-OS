@@ -73,7 +73,7 @@ int main(int argc, char const *argv[]) {
     //distance_test();
     /*
     if( bt_connect() == 0 ) {
-        printf("Connected!\n");
+        printf("Connected to Server!\n");
         bt_transmit();
         while(1){
             bt_check();
@@ -127,9 +127,15 @@ void initTimes(){
  * Stage one in the discovery algorithm. Works its way from side to side up the course.
  * */
 void startDiscovery(){
+<<<<<<< HEAD
 
     turnNumberOfDegsCorrected(turn_speed,-90);
     //correctAngle();
+=======
+    
+    //goToNextUndiscoveredPoint();
+    turnNumberOfDegsCorrected(turn_speed,180);
+>>>>>>> 49c2d1003b0567ffaa13f994d5307161a76592a3
     time_since_last_wall_closenes_check = (unsigned)time(NULL);
     runForeverCorrected(regular_speed);
     while(discovering){
@@ -224,6 +230,14 @@ void findLastPoints(){
             }
             
         }
+<<<<<<< HEAD
+=======
+        /*
+        if(time(NULL) - time_since_last_position_update > TIME_TO_SEND_POS){
+            time_since_last_position_update = time(NULL);
+        }
+        */
+>>>>>>> 49c2d1003b0567ffaa13f994d5307161a76592a3
         Sleep(100);
 
     }
@@ -417,6 +431,7 @@ void goToNextUndiscoveredPoint(){
 
 int isArrivedAtPoint(){
     return 0;
+<<<<<<< HEAD
 }
 
 void avoidObstacle(int heading_diff){
@@ -454,3 +469,6 @@ int checkIfObjectClose(int msec){
 
 
 
+=======
+}
+>>>>>>> 49c2d1003b0567ffaa13f994d5307161a76592a3

@@ -8,6 +8,7 @@
 #include "headers/EngineController.h"
 #include "headers/SensorController.h"
 #include "headers/ArmController.h"
+#include "headers/BluetoothController.h"
 
 
 #include <math.h>
@@ -70,6 +71,7 @@ void armReleasingMovable(){
         Sleep(1000);
         raiseArm();
         pos = RAISED;
+        bt_obstacle();
     }
 
 
